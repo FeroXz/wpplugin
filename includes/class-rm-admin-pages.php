@@ -169,6 +169,87 @@ class RM_Admin_Pages {
 			'rm-backup',
 			array( __CLASS__, 'render_backup_page' )
 		);
+
+		add_submenu_page(
+			'edit.php?post_type=rm_animal',
+			__( 'Benachrichtigungen', 'reptilien-manager' ),
+			__( 'Benachrichtigungen', 'reptilien-manager' ),
+			'edit_posts',
+			'rm-notifications',
+			array( __CLASS__, 'render_notifications_page' )
+		);
+	}
+
+	/**
+	 * Einstellungsseite für E-Mail-Benachrichtigungen und iCal-Export.
+	 */
+	public static function render_notifications_page() {
+		$s        = RM_Notifications::settings();
+		$base     = admin_url( 'admin-post.php' );
+		$can_edit = current_user_can( 'manage_options' );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nur Statusanzeige.
+		$msg = isset( $_GET['rm_msg'] ) ? sanitize_key( $_GET['rm_msg'] ) : '';
+		?>
+		<div class="wrap rm-wrap">
+			<h1><?php esc_html_e( 'Benachrichtigungen', 'reptilien-manager' ); ?></h1>
+
+			<?php
+			$notices = array(
+				'notify_saved' => array( 'success', __( 'Einstellungen gespeichert.', 'reptilien-manager' ) ),
+				'test_sent'    => array( 'success', __( 'Testnachricht versendet.', 'reptilien-manager' ) ),
+				'test_failed'  => array( 'error', __( 'Testnachricht konnte nicht versendet werden (E-Mail-Konfiguration prüfen).', 'reptilien-manager' ) ),
+			);
+			if ( isset( $notices[ $msg ] ) ) {
+				printf( '<div class="notice notice-%s is-dismissible"><p>%s</p></div>', esc_attr( $notices[ $msg ][0] ), esc_html( $notices[ $msg ][1] ) );
+			}
+			?>
+
+			<p><?php esc_html_e( 'Ein täglicher Hintergrundlauf (WP-Cron) prüft anstehende Schlüpfe und fällige Fütterungen und verschickt bei Bedarf eine Zusammenfassung. Am Monatsanfang wird optional ein Bericht gesendet.', 'reptilien-manager' ); ?></p>
+
+			<form method="post" action="<?php echo esc_url( $base ); ?>">
+				<input type="hidden" name="action" value="rm_save_notify" />
+				<?php wp_nonce_field( 'rm_save_notify', 'rm_notify_nonce' ); ?>
+				<table class="form-table rm-form-table">
+					<tr>
+						<th><?php esc_html_e( 'E-Mail-Benachrichtigungen', 'reptilien-manager' ); ?></th>
+						<td><label><input type="checkbox" name="rm_enabled" value="1" <?php checked( $s['enabled'] ); ?> <?php disabled( ! $can_edit ); ?> /> <?php esc_html_e( 'aktiv', 'reptilien-manager' ); ?></label></td>
+					</tr>
+					<tr>
+						<th><label for="rm_email"><?php esc_html_e( 'Empfänger-E-Mail', 'reptilien-manager' ); ?></label></th>
+						<td><input type="email" class="regular-text" id="rm_email" name="rm_email" value="<?php echo esc_attr( $s['email'] ); ?>" <?php disabled( ! $can_edit ); ?> /></td>
+					</tr>
+					<tr>
+						<th><label for="rm_hatch_lead_days"><?php esc_html_e( 'Schlupf-Vorlauf (Tage)', 'reptilien-manager' ); ?></label></th>
+						<td><input type="number" min="1" max="60" id="rm_hatch_lead_days" name="rm_hatch_lead_days" value="<?php echo esc_attr( $s['hatch_lead_days'] ); ?>" <?php disabled( ! $can_edit ); ?> />
+							<p class="description"><?php esc_html_e( 'So viele Tage vor dem vorhergesagten Schlupffenster wird erinnert.', 'reptilien-manager' ); ?></p></td>
+					</tr>
+					<tr>
+						<th><label for="rm_feeding_days"><?php esc_html_e( 'Fütterungserinnerung ab (Tage)', 'reptilien-manager' ); ?></label></th>
+						<td><input type="number" min="1" max="60" id="rm_feeding_days" name="rm_feeding_days" value="<?php echo esc_attr( $s['feeding_days'] ); ?>" <?php disabled( ! $can_edit ); ?> />
+							<p class="description"><?php esc_html_e( 'Erinnert, wenn ein Tier so lange nicht gefüttert wurde.', 'reptilien-manager' ); ?></p></td>
+					</tr>
+					<tr>
+						<th><?php esc_html_e( 'Monatsbericht', 'reptilien-manager' ); ?></th>
+						<td><label><input type="checkbox" name="rm_monthly_report" value="1" <?php checked( $s['monthly_report'] ); ?> <?php disabled( ! $can_edit ); ?> /> <?php esc_html_e( 'am Monatsanfang senden', 'reptilien-manager' ); ?></label></td>
+					</tr>
+				</table>
+				<?php if ( $can_edit ) : ?>
+					<?php submit_button( __( 'Einstellungen speichern', 'reptilien-manager' ) ); ?>
+				<?php else : ?>
+					<p class="description"><?php esc_html_e( 'Nur Administratoren können diese Einstellungen ändern.', 'reptilien-manager' ); ?></p>
+				<?php endif; ?>
+			</form>
+
+			<h2><?php esc_html_e( 'Werkzeuge', 'reptilien-manager' ); ?></h2>
+			<p class="rm-export-buttons">
+				<?php if ( $can_edit ) : ?>
+					<a class="button" href="<?php echo esc_url( wp_nonce_url( $base . '?action=rm_test_mail', 'rm_test_mail' ) ); ?>"><?php esc_html_e( 'Testnachricht senden', 'reptilien-manager' ); ?></a>
+				<?php endif; ?>
+				<a class="button" href="<?php echo esc_url( wp_nonce_url( $base . '?action=rm_ical', 'rm_ical' ) ); ?>"><?php esc_html_e( 'Schlupf-Kalender (iCal) herunterladen', 'reptilien-manager' ); ?></a>
+			</p>
+			<p class="description"><?php esc_html_e( 'Der iCal-Export enthält die vorhergesagten Schlupftermine der nächsten 120 Tage und kann in Kalender-Apps importiert werden.', 'reptilien-manager' ); ?></p>
+		</div>
+		<?php
 	}
 
 	/**

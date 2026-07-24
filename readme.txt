@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.9.0
+Stable tag: 1.10.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -71,6 +71,13 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
 * CSV-Import für Altdaten (Spalten: Name, Geschlecht, Schlupfdatum, Art, Herkunft, Länge, Gewicht, Kennzeichnung) mit flexibler Datums- und Geschlechts-Erkennung
 * PDF-Zuchtbuch: druckbare Gesamtübersicht aller Tiere (über den Browser als PDF speicherbar)
 
+**Benachrichtigungen**
+
+* Täglicher Hintergrundlauf (WP-Cron): E-Mail-Zusammenfassung mit anstehenden Schlüpfen (temperaturbasierte Vorhersage) und fälligen Fütterungen – Vorlauf/Schwellen einstellbar
+* Monatsbericht per E-Mail (Bestand, Geschlechterverteilung, Ø Gewicht, Futterkosten, anstehende Schlüpfe)
+* iCal-Export der vorhergesagten Schlupftermine (120 Tage) zum Import in Kalender-Apps
+* Testnachricht-Button zur Prüfung der E-Mail-Konfiguration
+
 == Installation ==
 
 1. Plugin-Ordner in `wp-content/plugins/` hochladen oder als ZIP installieren.
@@ -88,6 +95,13 @@ Vollständige artspezifische Profile (Genetik-Rechner und Futterplan) gibt es f�
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.10.0 =
+* Neu: Seite „Benachrichtigungen“ mit E-Mail-Einstellungen (Empfänger, Schlupf-Vorlauf, Fütterungsschwelle, Monatsbericht).
+* Neu: Täglicher WP-Cron verschickt eine Zusammenfassung mit anstehenden Schlüpfen (temperaturbasiert) und fälligen Fütterungen; Schlupf-Alerts werden pro Gelege nur einmal, Fütterungserinnerungen gedrosselt gesendet.
+* Neu: Monatsbericht per E-Mail (Bestand, Geschlechter, Ø Gewicht, Futterkosten, anstehende Schlüpfe).
+* Neu: iCal-Export der vorhergesagten Schlupftermine (120 Tage) und Testnachricht-Button.
+* Cron wird bei Aktivierung eingeplant, bei Deaktivierung entfernt und läuft selbstheilend nach.
 
 = 1.9.0 =
 * Neu: Seite „Import / Export“ im Reptilien-Menü.
