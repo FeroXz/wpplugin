@@ -1,0 +1,89 @@
+/* Reptilien Manager – Frontend */
+
+.rm-animal-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 20px;
+	margin: 20px 0;
+}
+
+.rm-animal-card {
+	border: 1px solid #e0e0e0;
+	border-radius: 8px;
+	padding: 12px;
+	text-align: center;
+	background: #fff;
+}
+
+.rm-animal-card img {
+	width: 100%;
+	height: 180px;
+	object-fit: cover;
+	border-radius: 6px;
+}
+
+.rm-animal-card h3 {
+	margin: 10px 0 4px;
+	font-size: 1.1em;
+}
+
+.rm-animal-card a {
+	text-decoration: none;
+	color: inherit;
+}
+
+.rm-animal-morph {
+	margin: 0;
+	font-style: italic;
+	font-size: 0.9em;
+	color: #555;
+}
+
+.rm-animal-sex {
+	margin: 4px 0 0;
+	font-size: 0.85em;
+	color: #777;
+}
+
+/* Profil */
+.rm-animal-profile {
+	max-width: 800px;
+}
+
+.rm-profile-photo img {
+	max-width: 100%;
+	height: auto;
+	border-radius: 8px;
+}
+
+.rm-profile-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 16px 0;
+}
+
+.rm-profile-table th,
+.rm-profile-table td {
+	text-align: left;
+	padding: 8px 10px;
+	border-bottom: 1px solid #eee;
+}
+
+.rm-profile-table th {
+	width: 40%;
+	color: #555;
+}
+
+.rm-profile-gallery {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+	gap: 12px;
+	margin-top: 16px;
+}
+
+.rm-profile-gallery img {
+	width: 100%;
+	height: 140px;
+	object-fit: cover;
+	border-radius: 6px;
+}
