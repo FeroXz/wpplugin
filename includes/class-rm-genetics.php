@@ -26,16 +26,24 @@ class RM_Genetics {
 	public static function genes( $species = 'pogona' ) {
 		if ( 'iguana' === $species ) {
 			return array(
-				'ig_albino'   => array(
+				'ig_albino'      => array(
 					'label' => __( 'Albino (amelanistisch)', 'reptilien-manager' ),
 					'type'  => 'recessive',
 				),
-				'ig_axanthic' => array(
+				'ig_axanthic'    => array(
 					'label' => __( 'Axanthic (Blau)', 'reptilien-manager' ),
 					'type'  => 'recessive',
 				),
-				'ig_hypo'     => array(
+				'ig_hypo'        => array(
 					'label' => __( 'Hypomelanistisch (Hypo)', 'reptilien-manager' ),
+					'type'  => 'recessive',
+				),
+				'ig_erythristic' => array(
+					'label' => __( 'Erythristisch (Rot)', 'reptilien-manager' ),
+					'type'  => 'recessive',
+				),
+				'ig_leucistic'   => array(
+					'label' => __( 'Leucistisch (Weiß)', 'reptilien-manager' ),
 					'type'  => 'recessive',
 				),
 			);
@@ -88,6 +96,16 @@ class RM_Genetics {
 					'key'   => 'snow',
 					'genes' => array( 'ig_albino', 'ig_axanthic' ),
 					'label' => __( 'Snow (Albino × Axanthic)', 'reptilien-manager' ),
+				),
+				array(
+					'key'   => 'sunglow',
+					'genes' => array( 'ig_albino', 'ig_erythristic' ),
+					'label' => __( 'Sunglow (Albino × Erythristisch)', 'reptilien-manager' ),
+				),
+				array(
+					'key'   => 'ghost',
+					'genes' => array( 'ig_hypo', 'ig_axanthic' ),
+					'label' => __( 'Ghost (Hypo × Axanthic)', 'reptilien-manager' ),
 				),
 			);
 		}

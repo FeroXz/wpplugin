@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.13.0
+Stable tag: 1.14.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,7 +32,7 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
 
 * Artspezifische Genanlagen pro Tier:
   * Bartagame: Hypo, Translucent, Zero, Witblits, Genetic Stripe (rezessiv), Leatherback/Silkback (unvollständig dominant), Dunner (dominant); Kombi-Morph Wero (Zero × Witblits)
-  * Grüner Leguan: Albino (amelanistisch), Axanthic/Blau, Hypomelanistisch (alle rezessiv); Kombi-Morph Snow (Albino × Axanthic)
+  * Grüner Leguan: Albino (amelanistisch), Axanthic/Blau, Hypomelanistisch, Erythristisch/Rot, Leucistisch/Weiß (alle rezessiv); Kombi-Morphe Snow (Albino × Axanthic), Sunglow (Albino × Erythristisch) und Ghost (Hypo × Axanthic)
 * Die Genetik-Vorschau nutzt automatisch das Gen-Set der Art; bei Elterntieren unterschiedlicher Arten wird gewarnt
 * Verpaarungen planen: Vater und Mutter auswählen, Verpaarungsdatum und Inkubationstemperatur festhalten
 * Gelege-Verwaltung pro Verpaarung: mehrere Gelege mit Ablagedatum, Anzahl gelegter Eier, tatsächlich geschlüpfter Anzahl und automatisch berechnetem ungefähren Schlupfdatum (Ablage + 60 Tage)
@@ -109,6 +109,10 @@ Vollständige artspezifische Profile (Genetik-Rechner und Futterplan) gibt es f�
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.14.0 =
+* Erweitert: Genetik des Grünen Leguans (Iguana iguana) – zusätzliche rezessive Morphe Erythristisch (Rot) und Leucistisch (Weiß) sowie neue Kombi-Morphe Sunglow (Albino × Erythristisch) und Ghost (Hypo × Axanthic).
+* Beim Anlegen eines Tieres genügt weiterhin die Art-Auswahl; die passende Genetik (jetzt 5 Leguan-Morphe) erscheint direkt zur Auswahl.
 
 = 1.13.0 =
 * Neu: Tierart wird jetzt direkt im Stammdaten-Bereich des Tieres ausgewählt (aus den angelegten Arten); die separate Taxonomie-Box wird ausgeblendet.
