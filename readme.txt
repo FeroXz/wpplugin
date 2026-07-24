@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.15.0
+Stable tag: 1.15.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -110,6 +110,12 @@ Vollständige artspezifische Profile (Genetik-Rechner und Futterplan) gibt es f�
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.15.1 =
+* Fix (Gutenberg): Die Tierart lässt sich jetzt auch direkt in der Seitenleiste des Block-Editors wählen (neues Panel „Tierart“). Klassische Meta-Boxen – und damit die Stammdaten mit der Art-Auswahl – landen in Gutenberg ganz unten unter dem Inhalt und werden dort leicht übersehen.
+* Panel und klassisches Auswahlfeld halten sich gegenseitig synchron, sodass sich beide beim Speichern nicht überschreiben; die Genetik-Felder laden weiterhin passend zur Art nach.
+* Die Standard-Arten werden nur noch angelegt, wenn die Taxonomie bereits registriert ist – vorher konnte die Auswahl in seltenen Fällen leer bleiben, weil das Anlegen still fehlschlug.
+* Bleibt die Liste leer, verweist der Hinweis jetzt direkt auf „Reptilien → Arten“, statt nur „Noch keine Arten angelegt.“ zu melden.
 
 = 1.15.0 =
 * Neu (Frontend): Shortcode `[reptilien-verwaltung]` – Tiere anlegen und bearbeiten, Fütterungen protokollieren und den Genetik-Rechner nutzen, alles direkt auf einer normalen Seite. Eingeloggte Nutzer mit der nötigen Berechtigung brauchen dafür keinen Backend-Zugang mehr.

@@ -280,14 +280,7 @@ class RM_Frontend {
 		$length  = $is_edit ? get_post_meta( $animal_id, '_rm_length', true ) : '';
 		$public  = $is_edit ? ( '0' !== (string) get_post_meta( $animal_id, '_rm_public', true ) ) : true;
 
-		RM_Species::register_terms();
-		$terms        = get_terms(
-			array(
-				'taxonomy'   => 'rm_species',
-				'hide_empty' => false,
-			)
-		);
-		$terms        = is_wp_error( $terms ) ? array() : $terms;
+		$terms        = RM_Species::ensure_terms();
 		$current_key  = $is_edit ? RM_Species::key_for_animal( $animal_id ) : RM_Species::DEFAULT_KEY;
 		$current_term = 0;
 		if ( $is_edit ) {

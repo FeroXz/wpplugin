@@ -21,6 +21,55 @@ class RM_Animal_Meta {
 		add_action( 'wp_ajax_rm_species_genes', array( __CLASS__, 'ajax_species_genes' ) );
 		// Standard-Taxonomie-Box entfernen – die Art wird im Stammdaten-Feld gewählt.
 		add_action( 'add_meta_boxes', array( __CLASS__, 'remove_species_metabox' ), 11 );
+		// Zusätzliches Art-Panel in der Seitenleiste des Block-Editors.
+		add_action( 'enqueue_block_editor_assets', array( __CLASS__, 'enqueue_editor_species_panel' ) );
+	}
+
+	/**
+	 * „Tierart“-Panel für den Block-Editor einbinden.
+	 *
+	 * In Gutenberg werden klassische Meta-Boxen unter dem Inhalt dargestellt
+	 * und dort leicht übersehen; das Panel zeigt dieselbe Auswahl zusätzlich
+	 * in der Dokument-Seitenleiste.
+	 */
+	public static function enqueue_editor_species_panel() {
+		$screen = get_current_screen();
+		if ( ! $screen || 'rm_animal' !== $screen->post_type ) {
+			return;
+		}
+
+		$terms = RM_Species::ensure_terms();
+		if ( ! $terms ) {
+			return;
+		}
+
+		$list = array();
+		foreach ( $terms as $term ) {
+			$list[] = array(
+				'id'   => (int) $term->term_id,
+				'name' => $term->name,
+			);
+		}
+
+		wp_enqueue_script(
+			'rm-editor-species',
+			RM_PLUGIN_URL . 'assets/js/editor-species.js',
+			array( 'wp-plugins', 'wp-element', 'wp-data', 'wp-components', 'wp-edit-post' ),
+			RM_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'rm-editor-species',
+			'rmEditorSpecies',
+			array(
+				'terms'       => $list,
+				'panelTitle'  => __( 'Tierart', 'reptilien-manager' ),
+				'fieldLabel'  => __( 'Art', 'reptilien-manager' ),
+				'chooseLabel' => __( '– auswählen –', 'reptilien-manager' ),
+				'help'        => __( 'Genetik und Futterplan richten sich nach der gewählten Art.', 'reptilien-manager' ),
+			)
+		);
 	}
 
 	/**
@@ -181,18 +230,8 @@ class RM_Animal_Meta {
 
 		// Sicherstellen, dass die Standard-Arten existieren (z. B. nach einem
 		// Update ohne Reaktivierung), damit die Auswahl nie leer ist.
-		RM_Species::register_terms();
+		$species_terms = RM_Species::ensure_terms();
 
-		// Arten aus der Taxonomie (angelegte Arten) für die Auswahl.
-		$species_terms = get_terms(
-			array(
-				'taxonomy'   => 'rm_species',
-				'hide_empty' => false,
-			)
-		);
-		if ( is_wp_error( $species_terms ) ) {
-			$species_terms = array();
-		}
 		$current_terms = wp_get_post_terms( $post->ID, 'rm_species', array( 'fields' => 'ids' ) );
 		$current_term  = ( is_array( $current_terms ) && $current_terms ) ? (int) $current_terms[0] : 0;
 		?>
@@ -200,8 +239,11 @@ class RM_Animal_Meta {
 			<tr>
 				<th><label for="rm_species"><?php esc_html_e( 'Tierart', 'reptilien-manager' ); ?></label></th>
 				<td>
-					<?php if ( is_wp_error( $species_terms ) || ! $species_terms ) : ?>
-						<p class="description"><?php esc_html_e( 'Noch keine Arten angelegt.', 'reptilien-manager' ); ?></p>
+					<?php if ( ! $species_terms ) : ?>
+						<p class="description">
+							<?php esc_html_e( 'Es konnten keine Arten geladen werden.', 'reptilien-manager' ); ?>
+							<a href="<?php echo esc_url( admin_url( 'edit-tags.php?taxonomy=rm_species&post_type=rm_animal' ) ); ?>"><?php esc_html_e( 'Arten anlegen', 'reptilien-manager' ); ?></a>
+						</p>
 					<?php else : ?>
 						<select name="rm_species" id="rm_species">
 							<?php foreach ( $species_terms as $term ) : ?>

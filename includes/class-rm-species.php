@@ -44,11 +44,42 @@ class RM_Species {
 	 * Legt die Standard-Arten als Taxonomie-Begriffe an (idempotent).
 	 */
 	public static function register_terms() {
+		if ( ! taxonomy_exists( 'rm_species' ) ) {
+			return;
+		}
+
 		foreach ( self::profiles() as $profile ) {
 			if ( ! term_exists( $profile['term_name'], 'rm_species' ) ) {
 				wp_insert_term( $profile['term_name'], 'rm_species' );
 			}
 		}
+	}
+
+	/**
+	 * Stellt sicher, dass für jede bekannte Art ein Taxonomie-Begriff existiert,
+	 * und liefert alle Begriffe der Taxonomie zurück.
+	 *
+	 * Die Begriffe werden nur angelegt, wenn die Taxonomie bereits registriert
+	 * ist – sonst liefert term_exists()/wp_insert_term() einen Fehler und die
+	 * Auswahl bliebe leer.
+	 *
+	 * @return WP_Term[] Alle Arten-Begriffe (leer, falls keine angelegt werden konnten).
+	 */
+	public static function ensure_terms() {
+		if ( ! taxonomy_exists( 'rm_species' ) ) {
+			return array();
+		}
+
+		self::register_terms();
+
+		$terms = get_terms(
+			array(
+				'taxonomy'   => 'rm_species',
+				'hide_empty' => false,
+			)
+		);
+
+		return is_wp_error( $terms ) ? array() : $terms;
 	}
 
 	/**
