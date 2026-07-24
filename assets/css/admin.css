@@ -337,6 +337,18 @@
 	white-space: normal;
 }
 
+/* Art-Kennzeichnung */
+.rm-species-tag {
+	display: inline-block;
+	margin-top: 3px;
+	padding: 1px 8px;
+	background: var(--rm-admin-surface-2);
+	color: var(--rm-admin-primary-dark);
+	border-radius: var(--rm-admin-radius-pill);
+	font-size: 11px;
+	font-weight: 600;
+}
+
 /* Empfehlungs-Zelle im Futterplan */
 .rm-plan-cell span {
 	display: block;

@@ -168,16 +168,19 @@ class RM_Admin_Pages {
 					<tbody>
 						<?php foreach ( $animals as $animal ) : ?>
 							<?php
-							$birth    = get_post_meta( $animal->ID, '_rm_birth', true );
-							$months   = $birth ? RM_Animal_Meta::age_in_months( $birth ) : null;
-							$plan     = RM_Feeding::plan_for_age( $months );
-							$last     = RM_Feeding::last_feeding( $animal->ID );
-							$analysis = RM_Feeding::analyze_animal( $animal->ID );
-							$notes    = get_post_meta( $animal->ID, '_rm_food_notes', true );
+							$birth        = get_post_meta( $animal->ID, '_rm_birth', true );
+							$months       = $birth ? RM_Animal_Meta::age_in_months( $birth ) : null;
+							$species_key  = RM_Species::key_for_animal( $animal->ID );
+							$plan         = RM_Feeding::plan_for_age( $months, $species_key );
+							$last         = RM_Feeding::last_feeding( $animal->ID );
+							$analysis     = RM_Feeding::analyze_animal( $animal->ID );
+							$notes        = get_post_meta( $animal->ID, '_rm_food_notes', true );
+							$protein_icon = 'herbivore' === RM_Species::diet( $species_key ) ? '🌿' : '🦗';
 							?>
 							<tr>
 								<td>
 									<a href="<?php echo esc_url( get_edit_post_link( $animal->ID ) ); ?>"><strong><?php echo esc_html( $animal->post_title ); ?></strong></a>
+									<br /><span class="rm-species-tag"><?php echo esc_html( RM_Species::label( $species_key ) ); ?></span>
 									<?php if ( $notes ) : ?>
 										<br /><em><?php echo esc_html( $notes ); ?></em>
 									<?php endif; ?>
@@ -187,7 +190,7 @@ class RM_Admin_Pages {
 									<span class="description"><?php echo esc_html( $plan['group'] ); ?></span>
 								</td>
 								<td class="rm-plan-cell">
-									<span>🦗 <?php echo esc_html( $plan['insects'] ); ?></span>
+									<span><?php echo esc_html( $protein_icon ); ?> <?php echo esc_html( $plan['insects'] ); ?></span>
 									<span>🥬 <?php echo esc_html( $plan['greens'] ); ?></span>
 									<span>🦴 <?php echo esc_html( $plan['supplements'] ); ?></span>
 								</td>

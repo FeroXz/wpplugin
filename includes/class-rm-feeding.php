@@ -1,6 +1,7 @@
 <?php
 /**
- * Futterplanung, Fütterungsprotokoll und Fütterungs-Auswertung (speziell Bartagamen).
+ * Futterplanung, Fütterungsprotokoll und Fütterungs-Auswertung –
+ * artspezifisch (Bartagame: Allesfresser, Grüner Leguan: Pflanzenfresser).
  *
  * @package Reptilien_Manager
  */
@@ -80,12 +81,13 @@ class RM_Feeding {
 	}
 
 	/**
-	 * Altersgerechter Bartagamen-Futterplan (Beschreibungstexte).
+	 * Altersgerechter Futterplan (Beschreibungstexte) je Art.
 	 *
-	 * @param int|null $months Alter in Monaten oder null.
+	 * @param int|null $months  Alter in Monaten oder null.
+	 * @param string   $species Art-Schlüssel.
 	 * @return array { group, insects, greens, supplements }
 	 */
-	public static function plan_for_age( $months ) {
+	public static function plan_for_age( $months, $species = 'pogona' ) {
 		if ( null === $months ) {
 			return array(
 				'group'       => __( 'Unbekanntes Alter', 'reptilien-manager' ),
@@ -95,6 +97,20 @@ class RM_Feeding {
 			);
 		}
 
+		if ( 'iguana' === $species ) {
+			return self::plan_iguana( $months );
+		}
+
+		return self::plan_pogona( $months );
+	}
+
+	/**
+	 * Futterplan Bartagame (Pogona vitticeps) – Allesfresser.
+	 *
+	 * @param int $months Alter in Monaten.
+	 * @return array
+	 */
+	private static function plan_pogona( $months ) {
 		if ( $months < 6 ) {
 			return array(
 				'group'       => __( 'Jungtier (0–6 Monate)', 'reptilien-manager' ),
@@ -131,16 +147,77 @@ class RM_Feeding {
 	}
 
 	/**
-	 * Ziel-Frequenzen (Fütterungen pro Woche) je Altersgruppe.
+	 * Futterplan Grüner Leguan (Iguana iguana) – strikter Pflanzenfresser.
 	 *
-	 * @param int|null $months Alter in Monaten oder null.
+	 * Wichtig: Tierisches Eiweiß dauerhaft meiden – zu viel Protein führt zu
+	 * Nierenschäden und Gicht.
+	 *
+	 * @param int $months Alter in Monaten.
+	 * @return array
+	 */
+	private static function plan_iguana( $months ) {
+		if ( $months < 12 ) {
+			return array(
+				'group'       => __( 'Jungtier (0–12 Monate)', 'reptilien-manager' ),
+				'insects'     => __( 'Reiner Pflanzenfresser – kein tierisches Eiweiß nötig. Täglich 1–2× fein gehackte Blattgrün-Mischung frisch anbieten.', 'reptilien-manager' ),
+				'greens'      => __( 'Basis: kalziumreiches Blattgrün (Grünkohl, Löwenzahn, Endivie, Mangold, Brennnessel), dazu geraspeltes Gemüse; Obst nur sparsam.', 'reptilien-manager' ),
+				'supplements' => __( 'Calcium an 5–6 Tagen/Woche, Calcium+D3 2×/Woche (bei UVB), Vitamine 1×/Woche – wichtig gegen Metabolische Knochenerkrankung (MBD).', 'reptilien-manager' ),
+			);
+		}
+
+		if ( $months < 36 ) {
+			return array(
+				'group'       => __( 'Heranwachsend (12–36 Monate)', 'reptilien-manager' ),
+				'insects'     => __( 'Weiterhin rein pflanzlich – kein Tierprotein.', 'reptilien-manager' ),
+				'greens'      => __( 'Täglich frische Blattgrün-Mischung (≈ 80–90 %), etwas Gemüse, Obst nur als Leckerbissen.', 'reptilien-manager' ),
+				'supplements' => __( 'Calcium 3–4×/Woche, Calcium+D3 1×/Woche (bei UVB), Vitamine 1×/Woche.', 'reptilien-manager' ),
+			);
+		}
+
+		return array(
+			'group'       => __( 'Adult (ab 36 Monaten)', 'reptilien-manager' ),
+			'insects'     => __( 'Strikt pflanzlich – tierisches Eiweiß dauerhaft meiden (Gicht- und Nierenschäden).', 'reptilien-manager' ),
+			'greens'      => __( 'Täglich frische Blattgrün-Mischung (≈ 80–90 %), Gemüse, wenig Obst; kalziumreiche Grünkost bevorzugen, oxalatreiche (z. B. Spinat) meiden.', 'reptilien-manager' ),
+			'supplements' => __( 'Calcium 2–3×/Woche, Calcium+D3 alle 1–2 Wochen (bei UVB), Vitamine 1×/Woche.', 'reptilien-manager' ),
+		);
+	}
+
+	/**
+	 * Ziel-Frequenzen (Fütterungen pro Woche) je Altersgruppe und Art.
+	 *
+	 * @param int|null $months  Alter in Monaten oder null.
+	 * @param string   $species Art-Schlüssel.
 	 * @return array|null Kategorien insects/greens/calcium mit [min, max] pro Woche.
 	 */
-	public static function targets_for_age( $months ) {
+	public static function targets_for_age( $months, $species = 'pogona' ) {
 		if ( null === $months ) {
 			return null;
 		}
 
+		if ( 'iguana' === $species ) {
+			// Pflanzenfresser: Insekten-Ziel 0 (jede Insektenfütterung = zu viel).
+			if ( $months < 12 ) {
+				return array(
+					'insects' => array( 0, 0 ),
+					'greens'  => array( 7, 14 ),
+					'calcium' => array( 5, 6 ),
+				);
+			}
+			if ( $months < 36 ) {
+				return array(
+					'insects' => array( 0, 0 ),
+					'greens'  => array( 7, 7 ),
+					'calcium' => array( 3, 4 ),
+				);
+			}
+			return array(
+				'insects' => array( 0, 0 ),
+				'greens'  => array( 7, 7 ),
+				'calcium' => array( 2, 3 ),
+			);
+		}
+
+		// Bartagame (Allesfresser).
 		if ( $months < 6 ) {
 			return array(
 				'insects' => array( 7, 21 ),
@@ -271,7 +348,8 @@ class RM_Feeding {
 	public static function analyze_animal( $animal_id, $days = self::ANALYSIS_DAYS ) {
 		$birth   = get_post_meta( $animal_id, '_rm_birth', true );
 		$months  = $birth ? RM_Animal_Meta::age_in_months( $birth ) : null;
-		$targets = self::targets_for_age( $months );
+		$species = RM_Species::key_for_animal( $animal_id );
+		$targets = self::targets_for_age( $months, $species );
 
 		$result = array(
 			'has_targets' => (bool) $targets,

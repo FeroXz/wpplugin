@@ -1,6 +1,7 @@
 <?php
 /**
- * Genetik-Berechnung (Punnett) für Bartagamen-Morphe.
+ * Genetik-Berechnung (Punnett) für artspezifische Morphe
+ * (Bartagame, Grüner Leguan).
  *
  * @package Reptilien_Manager
  */
@@ -12,16 +13,35 @@ if ( ! defined( 'ABSPATH' ) ) {
 class RM_Genetics {
 
 	/**
-	 * Bekannte Gene der Bartagame (Pogona vitticeps).
+	 * Bekannte Gene einer Art.
 	 *
 	 * Typen:
 	 * - recessive:           erst mit zwei Allelen sichtbar (het = Träger).
 	 * - incomplete_dominant: ein Allel = sichtbare Form, zwei Allele = Super-Form.
 	 * - dominant:            ein Allel genügt, Super-Form sieht gleich aus.
 	 *
+	 * @param string $species Art-Schlüssel (z. B. 'pogona', 'iguana').
 	 * @return array[]
 	 */
-	public static function genes() {
+	public static function genes( $species = 'pogona' ) {
+		if ( 'iguana' === $species ) {
+			return array(
+				'ig_albino'   => array(
+					'label' => __( 'Albino (amelanistisch)', 'reptilien-manager' ),
+					'type'  => 'recessive',
+				),
+				'ig_axanthic' => array(
+					'label' => __( 'Axanthic (Blau)', 'reptilien-manager' ),
+					'type'  => 'recessive',
+				),
+				'ig_hypo'     => array(
+					'label' => __( 'Hypomelanistisch (Hypo)', 'reptilien-manager' ),
+					'type'  => 'recessive',
+				),
+			);
+		}
+
+		// Standard: Bartagame (Pogona vitticeps).
 		return array(
 			'hypo'        => array(
 				'label' => __( 'Hypomelanistisch (Hypo)', 'reptilien-manager' ),
@@ -53,6 +73,46 @@ class RM_Genetics {
 				'type'  => 'dominant',
 			),
 		);
+	}
+
+	/**
+	 * Kombi-Morphe (zwei sichtbare Gene ergeben einen eigenen Namen).
+	 *
+	 * @param string $species Art-Schlüssel.
+	 * @return array[] Liste von { key, genes[], label }.
+	 */
+	public static function combos( $species = 'pogona' ) {
+		if ( 'iguana' === $species ) {
+			return array(
+				array(
+					'key'   => 'snow',
+					'genes' => array( 'ig_albino', 'ig_axanthic' ),
+					'label' => __( 'Snow (Albino × Axanthic)', 'reptilien-manager' ),
+				),
+			);
+		}
+
+		return array(
+			array(
+				'key'   => 'wero',
+				'genes' => array( 'zero', 'witblits' ),
+				'label' => __( 'Wero (Zero × Witblits)', 'reptilien-manager' ),
+			),
+		);
+	}
+
+	/**
+	 * Vereinigung aller Gen-Schlüssel über alle Arten (für die Validierung
+	 * beim Speichern, unabhängig von der aktuell erkannten Art).
+	 *
+	 * @return string[]
+	 */
+	public static function all_gene_keys() {
+		$keys = array();
+		foreach ( array_keys( RM_Species::all() ) as $species ) {
+			$keys = array_merge( $keys, array_keys( self::genes( $species ) ) );
+		}
+		return array_values( array_unique( $keys ) );
 	}
 
 	/**
@@ -111,10 +171,11 @@ class RM_Genetics {
 	 * @return array Gen-Schlüssel => Zustand.
 	 */
 	public static function get_animal_genes( $animal_id ) {
-		$stored = get_post_meta( $animal_id, '_rm_genes', true );
-		$genes  = array();
+		$stored  = get_post_meta( $animal_id, '_rm_genes', true );
+		$species = RM_Species::key_for_animal( $animal_id );
+		$genes   = array();
 
-		foreach ( array_keys( self::genes() ) as $key ) {
+		foreach ( array_keys( self::genes( $species ) ) as $key ) {
 			$state = isset( $stored[ $key ] ) ? $stored[ $key ] : '';
 			$genes[ $key ] = in_array( $state, array( 'het', 'homo' ), true ) ? $state : '';
 		}
@@ -129,17 +190,19 @@ class RM_Genetics {
 	 * @return string
 	 */
 	public static function animal_morph_label( $animal_id ) {
-		return self::morph_label_from_states( self::get_animal_genes( $animal_id ) );
+		$species = RM_Species::key_for_animal( $animal_id );
+		return self::morph_label_from_states( self::get_animal_genes( $animal_id ), $species );
 	}
 
 	/**
 	 * Morph-Bezeichnung aus einem Satz Genzustände (z. B. Formularwerte vor dem Speichern).
 	 *
-	 * @param array $states Gen-Schlüssel => '', 'het' oder 'homo'.
+	 * @param array  $states  Gen-Schlüssel => '', 'het' oder 'homo'.
+	 * @param string $species Art-Schlüssel.
 	 * @return string
 	 */
-	public static function morph_label_from_states( $states ) {
-		$genes   = self::genes();
+	public static function morph_label_from_states( $states, $species = 'pogona' ) {
+		$genes   = self::genes( $species );
 		$visuals = array();
 		$hets    = array();
 
@@ -158,7 +221,7 @@ class RM_Genetics {
 			}
 		}
 
-		return self::compose_label( $visuals, $hets );
+		return self::compose_label( $visuals, $hets, $species );
 	}
 
 	/**
@@ -190,15 +253,27 @@ class RM_Genetics {
 	/**
 	 * Setzt aus sichtbaren Merkmalen und het-Trägerschaften einen Morph-Namen zusammen.
 	 *
-	 * @param array $visuals Gen-Schlüssel => sichtbares Label.
-	 * @param array $hets    Labels der het-Trägerschaften.
+	 * @param array  $visuals Gen-Schlüssel => sichtbares Label.
+	 * @param array  $hets    Labels der het-Trägerschaften.
+	 * @param string $species Art-Schlüssel.
 	 * @return string
 	 */
-	private static function compose_label( $visuals, $hets ) {
-		// Kombi-Morph: Zero + Witblits visuell = Wero.
-		if ( isset( $visuals['zero'], $visuals['witblits'] ) ) {
-			unset( $visuals['zero'], $visuals['witblits'] );
-			$visuals = array( 'wero' => __( 'Wero (Zero × Witblits)', 'reptilien-manager' ) ) + $visuals;
+	private static function compose_label( $visuals, $hets, $species = 'pogona' ) {
+		// Kombi-Morphe: zwei sichtbare Gene ergeben einen eigenen Namen.
+		foreach ( self::combos( $species ) as $combo ) {
+			$all_present = true;
+			foreach ( $combo['genes'] as $gene_key ) {
+				if ( ! isset( $visuals[ $gene_key ] ) ) {
+					$all_present = false;
+					break;
+				}
+			}
+			if ( $all_present ) {
+				foreach ( $combo['genes'] as $gene_key ) {
+					unset( $visuals[ $gene_key ] );
+				}
+				$visuals = array( $combo['key'] => $combo['label'] ) + $visuals;
+			}
 		}
 
 		$parts = array();
@@ -270,7 +345,8 @@ class RM_Genetics {
 	 * }
 	 */
 	public static function cross_animals( $sire_id, $dam_id ) {
-		$genes       = self::genes();
+		$species     = RM_Species::key_for_animal( $sire_id );
+		$genes       = self::genes( $species );
 		$sire_states = self::get_animal_genes( $sire_id );
 		$dam_states  = self::get_animal_genes( $dam_id );
 
@@ -278,8 +354,8 @@ class RM_Genetics {
 		$active_genes  = array();
 
 		foreach ( $genes as $key => $gene ) {
-			$sc = self::copies_from_state( $sire_states[ $key ] );
-			$dc = self::copies_from_state( $dam_states[ $key ] );
+			$sc = self::copies_from_state( isset( $sire_states[ $key ] ) ? $sire_states[ $key ] : '' );
+			$dc = self::copies_from_state( isset( $dam_states[ $key ] ) ? $dam_states[ $key ] : '' );
 
 			if ( 0 === $sc && 0 === $dc ) {
 				continue;
@@ -301,7 +377,7 @@ class RM_Genetics {
 
 		return array(
 			'per_gene' => $per_gene,
-			'combined' => self::combine_outcomes( $genes, $active_genes ),
+			'combined' => self::combine_outcomes( $genes, $active_genes, $species ),
 		);
 	}
 
@@ -336,11 +412,12 @@ class RM_Genetics {
 	/**
 	 * Kreuzprodukt aller aktiven Gene zu kombinierten Jungtier-Ergebnissen.
 	 *
-	 * @param array $genes        Alle Gen-Definitionen.
-	 * @param array $active_genes Gen-Schlüssel => Verteilung (Kopien => Wahrscheinlichkeit).
+	 * @param array  $genes        Alle Gen-Definitionen.
+	 * @param array  $active_genes Gen-Schlüssel => Verteilung (Kopien => Wahrscheinlichkeit).
+	 * @param string $species      Art-Schlüssel.
 	 * @return array Liste von array( 'label' => string, 'probability' => float ).
 	 */
-	private static function combine_outcomes( $genes, $active_genes ) {
+	private static function combine_outcomes( $genes, $active_genes, $species = 'pogona' ) {
 		if ( ! $active_genes ) {
 			return array(
 				array(
@@ -387,7 +464,7 @@ class RM_Genetics {
 				}
 			}
 
-			$label = self::compose_label( $visuals, $hets );
+			$label = self::compose_label( $visuals, $hets, $species );
 
 			if ( isset( $results[ $label ] ) ) {
 				$results[ $label ] += $combo['probability'];
@@ -419,9 +496,26 @@ class RM_Genetics {
 	public static function render_cross_result( $sire_id, $dam_id ) {
 		$result = self::cross_animals( $sire_id, $dam_id );
 
+		$sire_species = RM_Species::key_for_animal( $sire_id );
+		$dam_species  = RM_Species::key_for_animal( $dam_id );
+
 		ob_start();
 		?>
 		<div class="rm-genetics-result">
+			<?php if ( $sire_species !== $dam_species ) : ?>
+				<div class="notice notice-warning inline">
+					<p>
+						<?php
+						printf(
+							/* translators: 1: Art des Vaters, 2: Art der Mutter */
+							esc_html__( 'Achtung: Die Elterntiere gehören unterschiedlichen Arten an (%1$s × %2$s). Eine Verpaarung ist biologisch nicht möglich – die Berechnung erfolgt auf Basis der Art des Vaters.', 'reptilien-manager' ),
+							esc_html( RM_Species::label( $sire_species ) ),
+							esc_html( RM_Species::label( $dam_species ) )
+						);
+						?>
+					</p>
+				</div>
+			<?php endif; ?>
 			<h3><?php esc_html_e( 'Mögliche Jungtiere (kombiniert)', 'reptilien-manager' ); ?></h3>
 			<table class="widefat striped rm-table">
 				<thead>

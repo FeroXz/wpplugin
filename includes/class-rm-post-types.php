@@ -119,10 +119,8 @@ class RM_Post_Types {
 			)
 		);
 
-		// Standard-Art anlegen, falls noch nicht vorhanden.
-		if ( ! term_exists( 'Bartagame (Pogona vitticeps)', 'rm_species' ) ) {
-			wp_insert_term( 'Bartagame (Pogona vitticeps)', 'rm_species' );
-		}
+		// Standard-Arten (Bartagame, Grüner Leguan) anlegen, falls noch nicht vorhanden.
+		RM_Species::register_terms();
 	}
 
 	/**

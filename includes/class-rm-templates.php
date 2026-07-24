@@ -163,10 +163,12 @@ class RM_Templates {
 
 		$birth = $text( 'rm_birth' );
 
-		// Genanlagen.
+		$species_key = RM_Species::key_for_animal( $post_id );
+
+		// Genanlagen (art-spezifisch).
 		$genes_raw = isset( $_POST['rm_genes'] ) && is_array( $_POST['rm_genes'] ) ? wp_unslash( $_POST['rm_genes'] ) : array();
 		$states    = array();
-		foreach ( array_keys( RM_Genetics::genes() ) as $key ) {
+		foreach ( array_keys( RM_Genetics::genes( $species_key ) ) as $key ) {
 			$state = isset( $genes_raw[ $key ] ) ? sanitize_key( $genes_raw[ $key ] ) : '';
 			$states[ $key ] = in_array( $state, array( 'het', 'homo' ), true ) ? $state : '';
 		}
@@ -198,27 +200,28 @@ class RM_Templates {
 		$clutch_no      = isset( $_POST['rm_clutch'] ) ? absint( $_POST['rm_clutch'] ) : 0;
 		// phpcs:enable
 
-		$species = wp_get_post_terms( $post_id, 'rm_species', array( 'fields' => 'names' ) );
+		$species_names = wp_get_post_terms( $post_id, 'rm_species', array( 'fields' => 'names' ) );
 
 		return array(
-			'title'       => $title,
-			'sex_key'     => $sex_key,
-			'sex_label'   => isset( $sexes[ $sex_key ] ) ? $sexes[ $sex_key ] : '',
-			'birth'       => $birth,
-			'age_label'   => $birth ? RM_Animal_Meta::age_label( $birth ) : '',
-			'origin'      => $text( 'rm_origin' ),
-			'acquired'    => $text( 'rm_acquired' ),
-			'identifier'  => $text( 'rm_identifier' ),
-			'length'      => $text( 'rm_length' ),
-			'food_notes'  => isset( $_POST['rm_food_notes'] ) ? sanitize_textarea_field( wp_unslash( $_POST['rm_food_notes'] ) ) : '', // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			'gene_states' => $states,
-			'morph'       => RM_Genetics::morph_label_from_states( $states ),
-			'weights'     => $weights,
-			'featured_id' => isset( $_POST['featured_id'] ) ? absint( $_POST['featured_id'] ) : 0, // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			'gallery'     => array_values( array_filter( array_unique( $gallery ) ) ),
-			'species'     => is_array( $species ) ? implode( ', ', $species ) : '',
-			'parent'      => self::parent_info( $parent_pairing, $clutch_no ),
-			'pairings'    => self::animal_pairings( $post_id ),
+			'title'        => $title,
+			'sex_key'      => $sex_key,
+			'sex_label'    => isset( $sexes[ $sex_key ] ) ? $sexes[ $sex_key ] : '',
+			'birth'        => $birth,
+			'age_label'    => $birth ? RM_Animal_Meta::age_label( $birth ) : '',
+			'origin'       => $text( 'rm_origin' ),
+			'acquired'     => $text( 'rm_acquired' ),
+			'identifier'   => $text( 'rm_identifier' ),
+			'length'       => $text( 'rm_length' ),
+			'food_notes'   => isset( $_POST['rm_food_notes'] ) ? sanitize_textarea_field( wp_unslash( $_POST['rm_food_notes'] ) ) : '', // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			'gene_states'  => $states,
+			'species_key'  => $species_key,
+			'morph'        => RM_Genetics::morph_label_from_states( $states, $species_key ),
+			'weights'      => $weights,
+			'featured_id'  => isset( $_POST['featured_id'] ) ? absint( $_POST['featured_id'] ) : 0, // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			'gallery'      => array_values( array_filter( array_unique( $gallery ) ) ),
+			'species'      => is_array( $species_names ) ? implode( ', ', $species_names ) : '',
+			'parent'       => self::parent_info( $parent_pairing, $clutch_no ),
+			'pairings'     => self::animal_pairings( $post_id ),
 		);
 	}
 
@@ -545,13 +548,14 @@ class RM_Templates {
 	/**
 	 * Beschreibung der einzelnen Genanlagen als Liste.
 	 *
-	 * @param array $states Gen-Schlüssel => Zustand.
+	 * @param array  $states  Gen-Schlüssel => Zustand.
+	 * @param string $species Art-Schlüssel.
 	 * @return array
 	 */
-	private static function gene_lines( $states ) {
+	private static function gene_lines( $states, $species = 'pogona' ) {
 		$lines = array();
-		foreach ( RM_Genetics::genes() as $key => $gene ) {
-			if ( '' === $states[ $key ] ) {
+		foreach ( RM_Genetics::genes( $species ) as $key => $gene ) {
+			if ( empty( $states[ $key ] ) ) {
 				continue;
 			}
 			$labels  = RM_Genetics::states_for_gene( $gene );
@@ -818,7 +822,7 @@ class RM_Templates {
 		$content .= self::heading( '🧬 ' . __( 'Genetik', 'reptilien-manager' ), 3 );
 		/* translators: %s: Morph-Bezeichnung */
 		$content .= self::paragraph( esc_html( sprintf( __( 'Morph: %s', 'reptilien-manager' ), $data['morph'] ) ) );
-		$content .= self::bullet_list( self::gene_lines( $data['gene_states'] ) );
+		$content .= self::bullet_list( self::gene_lines( $data['gene_states'], $data['species_key'] ) );
 
 		$content .= self::heading( '🍽️ ' . __( 'Ernährung', 'reptilien-manager' ), 3 );
 		$content .= self::paragraph(
@@ -861,7 +865,7 @@ class RM_Templates {
 		$content .= self::columns( self::image( $data['featured_id'], 'large' ), $table );
 
 		$content .= self::heading( '🧬 ' . __( 'Genetik im Detail', 'reptilien-manager' ), 3 );
-		$gene_lines = self::gene_lines( $data['gene_states'] );
+		$gene_lines = self::gene_lines( $data['gene_states'], $data['species_key'] );
 		if ( $gene_lines ) {
 			$content .= self::bullet_list( $gene_lines );
 		} else {

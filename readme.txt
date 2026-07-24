@@ -4,15 +4,15 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.4.0
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Verwaltung von Reptilien – speziell Bartagamen: Tiere mit Fotos und Daten, Verpaarungen mit Genetik-Vorschau und Futterplanung.
+Verwaltung von Reptilien – Bartagame und Grüner Leguan: Tiere mit Fotos und Daten, artspezifische Genetik-Vorschau und artgerechte Futterplanung.
 
 == Description ==
 
-Reptilien Manager hilft Haltern und Züchtern von Reptilien – mit Fokus auf Bartagamen (Pogona vitticeps) – bei der Verwaltung ihres Bestands:
+Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung ihres Bestands. Genetik und Futterplan sind artspezifisch – aktuell für Bartagame (Pogona vitticeps, Allesfresser) und Grünen Leguan (Iguana iguana, strikter Pflanzenfresser):
 
 **Tierverwaltung**
 
@@ -20,7 +20,7 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien – mit Fokus auf Ba
 * Stammdaten: Geschlecht, Schlupfdatum (mit automatischer Altersberechnung), Herkunft/Züchter, Erwerbsdatum, Kennzeichnung, Gesamtlänge
 * Gewichtsverlauf mit beliebig vielen Wiegungen
 * Freitext für Haltung, Gesundheit und Besonderheiten
-* Arten-Taxonomie (Standard: Bartagame)
+* Arten-Taxonomie mit vorbereiteten Profilen: Bartagame (Pogona vitticeps) und Grüner Leguan (Iguana iguana) – Genetik-Set und Futterplan richten sich automatisch nach der zugeordneten Art
 * Beitrags-Vorlagen: Steckbrief (Tabelle), Ausführliches Porträt, Zuchttier-Präsentation und Kurzprofil – der Beitragstext wird per Klick automatisch aus den eingetragenen Daten erzeugt, inklusive Profilfoto und Galerie (Gutenberg-Blöcke, Classic-Editor-kompatibel)
 * Die Vorlagen zeigen automatisch Verpaarungen und Nachzuchten des Tieres – mit Verlinkung zum Partner und zu den Nachzucht-Tieren sowie Gelege-Übersicht (Eier, geschlüpft, erwarteter Schlupf)
 * Ansprechendes Layout: Banner-Karte mit Name und Morph, Foto neben Datentabelle, gestreifte Tabellen, Galerie-Raster und Abschnitts-Icons
@@ -28,7 +28,10 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien – mit Fokus auf Ba
 
 **Genetik & Verpaarung**
 
-* Genanlagen pro Tier: Hypo, Translucent, Zero, Witblits, Genetic Stripe (rezessiv), Leatherback/Silkback (unvollständig dominant), Dunner (dominant)
+* Artspezifische Genanlagen pro Tier:
+  * Bartagame: Hypo, Translucent, Zero, Witblits, Genetic Stripe (rezessiv), Leatherback/Silkback (unvollständig dominant), Dunner (dominant); Kombi-Morph Wero (Zero × Witblits)
+  * Grüner Leguan: Albino (amelanistisch), Axanthic/Blau, Hypomelanistisch (alle rezessiv); Kombi-Morph Snow (Albino × Axanthic)
+* Die Genetik-Vorschau nutzt automatisch das Gen-Set der Art; bei Elterntieren unterschiedlicher Arten wird gewarnt
 * Verpaarungen planen: Vater und Mutter auswählen, Verpaarungsdatum und Inkubationstemperatur festhalten
 * Gelege-Verwaltung pro Verpaarung: mehrere Gelege mit Ablagedatum, Anzahl gelegter Eier, tatsächlich geschlüpfter Anzahl und automatisch berechnetem ungefähren Schlupfdatum (Ablage + 60 Tage)
 * Nachzuchten werden beim Speichern automatisch als Tier-Entwürfe angelegt (pro Gelege entsprechend der geschlüpften Anzahl) – verknüpft mit der Verpaarung, inkl. Schlupfdatum und Art
@@ -38,9 +41,9 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien – mit Fokus auf Ba
 
 **Futterplanung**
 
-* Altersgerechter Bartagamen-Futterplan (Jungtier, Heranwachsend, Subadult, Adult) mit Empfehlungen für Insekten, Grünfutter und Supplemente (Calcium, Calcium+D3, Vitamine)
+* Artgerechter, altersgerechter Futterplan – Bartagame (Allesfresser: Insekten + Grünfutter) und Grüner Leguan (strikter Pflanzenfresser: Blattgrün, kein tierisches Eiweiß, MBD-/Gicht-Hinweise) – mit Supplement-Empfehlungen (Calcium, Calcium+D3, Vitamine)
 * Schnell-Eintrag direkt auf der Futterplan-Seite: mehrere Tiere (oder „Alle Tiere“) und mehrere Futterarten gleichzeitig in einem Eintrag, plus Menge, Supplemente und Notizen
-* Fütterungs-Auswertung: vergleicht die protokollierten Fütterungen der letzten 14 Tage pro Tier mit dem altersgerechten Optimum (Insekten-, Grünfutter- und Calcium-Frequenz pro Woche) und zeigt farbige Status-Chips (optimal / zu wenig / zu viel)
+* Fütterungs-Auswertung: vergleicht die protokollierten Fütterungen der letzten 14 Tage pro Tier mit dem art- und altersgerechten Optimum (Insekten-, Grünfutter- und Calcium-Frequenz pro Woche) und zeigt farbige Status-Chips (optimal / zu wenig / zu viel) – beim Leguan wird jede Insektenfütterung als „zu viel“ markiert
 * Fütterungsprotokoll mit automatisch erzeugten Titeln („Fütterung 24.07.2026 – Alle Tiere“)
 * Übersichtsseite mit Empfehlung, Auswertung und letzter Fütterung pro Tier
 
@@ -60,13 +63,20 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien – mit Fokus auf Ba
 
 = Für welche Arten ist das Plugin geeignet? =
 
-Der Fokus liegt auf Bartagamen (Genetik-Rechner und Futterplan). Über die Arten-Taxonomie lassen sich aber beliebige Reptilien verwalten.
+Vollständige artspezifische Profile (Genetik-Rechner und Futterplan) gibt es für Bartagame (Pogona vitticeps) und Grünen Leguan (Iguana iguana). Die Art wird pro Tier über die Arten-Taxonomie zugeordnet; Genetik-Set und Fütterungs-Optimum passen sich automatisch an. Weitere Reptilien lassen sich als zusätzliche Arten verwalten (dann mit dem Standard-Set der Bartagame).
 
 = Wie funktioniert die Genetik-Vorschau? =
 
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.5.0 =
+* Neu: Grüner Leguan (Iguana iguana) als vollständige Art. Genetik und Futterplan sind jetzt artspezifisch.
+* Neu: Leguan-Genetik mit Albino (amelanistisch), Axanthic (Blau) und Hypomelanistisch (rezessiv) sowie Kombi-Morph Snow (Albino × Axanthic).
+* Neu: Leguan-Futterplan als strikter Pflanzenfresser (Blattgrün-Basis, kein tierisches Eiweiß, MBD-/Gicht-Hinweise) inkl. eigener Altersgruppen und Ziel-Frequenzen; jede Insektenfütterung wird in der Auswertung als „zu viel“ markiert.
+* Neu: Zentrale Arten-Registry ordnet jedem Tier über die Taxonomie automatisch das passende Gen-Set und Futter-Optimum zu; die Genetik-Metabox zeigt die Morphe der zugeordneten Art.
+* Verbessert: Genetik-Rechner warnt, wenn Elterntiere unterschiedlichen Arten angehören.
 
 = 1.4.0 =
 * Neu: Schnell-Eintrag für Fütterungen direkt auf der Futterplan-Seite – mehrere Tiere (inkl. „Alle Tiere“-Schalter) und mehrere Futterarten in einem Eintrag.

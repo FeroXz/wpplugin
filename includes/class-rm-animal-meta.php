@@ -130,11 +130,20 @@ class RM_Animal_Meta {
 	}
 
 	public static function render_genetics( $post ) {
-		$states = RM_Genetics::get_animal_genes( $post->ID );
+		$species = RM_Species::key_for_animal( $post->ID );
+		$states  = RM_Genetics::get_animal_genes( $post->ID );
 		?>
-		<p class="description"><?php esc_html_e( 'Genanlagen dieses Tieres – Grundlage für die Genetik-Vorschau bei Verpaarungen.', 'reptilien-manager' ); ?></p>
+		<p class="description">
+			<?php
+			printf(
+				/* translators: %s: Artname */
+				esc_html__( 'Genanlagen dieses Tieres (Art: %s) – Grundlage für die Genetik-Vorschau bei Verpaarungen. Wird die Art geändert, bitte speichern, damit die passenden Morphe erscheinen.', 'reptilien-manager' ),
+				'<strong>' . esc_html( RM_Species::label( $species ) ) . '</strong>'
+			);
+			?>
+		</p>
 		<table class="form-table rm-form-table">
-			<?php foreach ( RM_Genetics::genes() as $key => $gene ) : ?>
+			<?php foreach ( RM_Genetics::genes( $species ) as $key => $gene ) : ?>
 				<tr>
 					<th><label for="rm_gene_<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $gene['label'] ); ?></label></th>
 					<td>
@@ -286,10 +295,11 @@ class RM_Animal_Meta {
 		$clutch_no = isset( $_POST['rm_clutch'] ) ? absint( $_POST['rm_clutch'] ) : 0;
 		update_post_meta( $post_id, '_rm_clutch', $clutch_no ? $clutch_no : '' );
 
-		// Genanlagen.
+		// Genanlagen (artübergreifende Schlüssel-Validierung, damit die Reihenfolge
+		// von Taxonomie- und Meta-Speicherung keine Rolle spielt).
 		$genes = array();
 		$raw   = isset( $_POST['rm_genes'] ) && is_array( $_POST['rm_genes'] ) ? wp_unslash( $_POST['rm_genes'] ) : array();
-		foreach ( array_keys( RM_Genetics::genes() ) as $key ) {
+		foreach ( RM_Genetics::all_gene_keys() as $key ) {
 			$state = isset( $raw[ $key ] ) ? sanitize_key( $raw[ $key ] ) : '';
 			if ( in_array( $state, array( 'het', 'homo' ), true ) ) {
 				$genes[ $key ] = $state;
