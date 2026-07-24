@@ -179,6 +179,10 @@ class RM_Animal_Meta {
 		$girth       = get_post_meta( $post->ID, '_rm_girth', true );
 		$is_public   = '0' !== (string) get_post_meta( $post->ID, '_rm_public', true );
 
+		// Sicherstellen, dass die Standard-Arten existieren (z. B. nach einem
+		// Update ohne Reaktivierung), damit die Auswahl nie leer ist.
+		RM_Species::register_terms();
+
 		// Arten aus der Taxonomie (angelegte Arten) für die Auswahl.
 		$species_terms = get_terms(
 			array(
@@ -186,6 +190,9 @@ class RM_Animal_Meta {
 				'hide_empty' => false,
 			)
 		);
+		if ( is_wp_error( $species_terms ) ) {
+			$species_terms = array();
+		}
 		$current_terms = wp_get_post_terms( $post->ID, 'rm_species', array( 'fields' => 'ids' ) );
 		$current_term  = ( is_array( $current_terms ) && $current_terms ) ? (int) $current_terms[0] : 0;
 		?>

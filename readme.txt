@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.14.0
+Stable tag: 1.14.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -109,6 +109,9 @@ Vollständige artspezifische Profile (Genetik-Rechner und Futterplan) gibt es f�
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.14.1 =
+* Fix: Die Tierart-Auswahl in den Stammdaten war leer, wenn keine Arten-Begriffe existierten (z. B. nach einem Update ohne Reaktivierung). Die Standard-Arten (Bartagame, Grüner Leguan) werden jetzt beim Öffnen des Tier-Formulars sichergestellt, sodass das Dropdown immer befüllt ist.
 
 = 1.14.0 =
 * Erweitert: Genetik des Grünen Leguans (Iguana iguana) – zusätzliche rezessive Morphe Erythristisch (Rot) und Leucistisch (Weiß) sowie neue Kombi-Morphe Sunglow (Albino × Erythristisch) und Ghost (Hypo × Axanthic).
