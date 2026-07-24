@@ -129,16 +129,25 @@ class RM_Genetics {
 	 * @return string
 	 */
 	public static function animal_morph_label( $animal_id ) {
+		return self::morph_label_from_states( self::get_animal_genes( $animal_id ) );
+	}
+
+	/**
+	 * Morph-Bezeichnung aus einem Satz Genzustände (z. B. Formularwerte vor dem Speichern).
+	 *
+	 * @param array $states Gen-Schlüssel => '', 'het' oder 'homo'.
+	 * @return string
+	 */
+	public static function morph_label_from_states( $states ) {
 		$genes   = self::genes();
-		$states  = self::get_animal_genes( $animal_id );
 		$visuals = array();
 		$hets    = array();
 
-		foreach ( $states as $key => $state ) {
+		foreach ( $genes as $key => $gene ) {
+			$state = isset( $states[ $key ] ) ? $states[ $key ] : '';
 			if ( '' === $state ) {
 				continue;
 			}
-			$gene   = $genes[ $key ];
 			$copies = self::copies_from_state( $state );
 			$label  = self::visual_label( $gene, $copies );
 

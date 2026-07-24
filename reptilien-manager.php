@@ -3,7 +3,7 @@
  * Plugin Name:       Reptilien Manager
  * Plugin URI:        https://github.com/FeroXz/wpplugin
  * Description:       Verwaltung von Reptilien – speziell Bartagamen (Pogona vitticeps). Eigene Tiere mit Fotos und allen wichtigen Daten erfassen, Verpaarungen planen inkl. Genetik-Vorschau der Jungtiere sowie Futterplanung und Fütterungsprotokoll.
- * Version:           1.0.0
+ * Version:           1.1.0
  * Author:            FeroXz
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'RM_VERSION', '1.0.0' );
+define( 'RM_VERSION', '1.1.0' );
 define( 'RM_PLUGIN_FILE', __FILE__ );
 define( 'RM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'RM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -28,6 +28,7 @@ require_once RM_PLUGIN_DIR . 'includes/class-rm-animal-meta.php';
 require_once RM_PLUGIN_DIR . 'includes/class-rm-pairing.php';
 require_once RM_PLUGIN_DIR . 'includes/class-rm-feeding.php';
 require_once RM_PLUGIN_DIR . 'includes/class-rm-admin-pages.php';
+require_once RM_PLUGIN_DIR . 'includes/class-rm-templates.php';
 require_once RM_PLUGIN_DIR . 'includes/class-rm-shortcodes.php';
 
 /**
@@ -53,6 +54,7 @@ final class Reptilien_Manager {
 		RM_Pairing::init();
 		RM_Feeding::init();
 		RM_Admin_Pages::init();
+		RM_Templates::init();
 		RM_Shortcodes::init();
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_assets' ) );
@@ -93,8 +95,10 @@ final class Reptilien_Manager {
 			'rm-admin',
 			'rmAdmin',
 			array(
-				'chooseImages' => __( 'Fotos auswählen', 'reptilien-manager' ),
-				'addToGallery' => __( 'Zur Galerie hinzufügen', 'reptilien-manager' ),
+				'chooseImages'   => __( 'Fotos auswählen', 'reptilien-manager' ),
+				'addToGallery'   => __( 'Zur Galerie hinzufügen', 'reptilien-manager' ),
+				'replaceConfirm' => __( 'Der vorhandene Beitragstext wird durch die Vorlage ersetzt. Fortfahren?', 'reptilien-manager' ),
+				'templateError'  => __( 'Die Vorlage konnte nicht erzeugt werden. Bitte erneut versuchen.', 'reptilien-manager' ),
 			)
 		);
 	}

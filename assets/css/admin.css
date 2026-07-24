@@ -74,3 +74,21 @@
 	display: inline-block;
 	margin-bottom: 4px;
 }
+
+/* Beitrags-Vorlagen */
+.rm-template-descriptions {
+	margin: 0 0 12px;
+	padding-left: 4px;
+	list-style: none;
+	font-size: 12px;
+	color: #646970;
+}
+
+.rm-template-descriptions li {
+	margin-bottom: 6px;
+}
+
+.rm-template-spinner {
+	float: none;
+	vertical-align: middle;
+}
