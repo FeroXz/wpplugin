@@ -309,3 +309,124 @@
 		transform: none;
 	}
 }
+
+/* ============================================================
+   Filterleiste ([reptilien])
+   ============================================================ */
+.rm-filter-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 12px;
+	padding: 14px 16px;
+	margin: 0 0 20px;
+	background: var(--rm-surface-alt);
+	border: 1px solid var(--rm-border);
+	border-radius: var(--rm-radius);
+}
+
+.rm-filter-bar label {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 0.82rem;
+	font-weight: 600;
+	color: var(--rm-muted);
+}
+
+.rm-filter-bar select,
+.rm-filter-bar input {
+	padding: 6px 10px;
+	border: 1px solid var(--rm-border);
+	border-radius: var(--rm-radius-sm);
+	background: var(--rm-surface);
+	color: var(--rm-text);
+	font-size: 0.9rem;
+}
+
+.rm-filter-age__inputs {
+	display: flex;
+	gap: 6px;
+}
+
+.rm-filter-age__inputs input {
+	width: 68px;
+}
+
+.rm-filter-submit {
+	padding: 8px 18px;
+	border: none;
+	border-radius: var(--rm-radius-pill);
+	background: var(--rm-gradient-brand);
+	color: #fff;
+	font-weight: 600;
+	cursor: pointer;
+	transition: transform var(--rm-transition), box-shadow var(--rm-transition);
+}
+
+.rm-filter-submit:hover {
+	transform: translateY(-1px);
+	box-shadow: var(--rm-shadow);
+}
+
+/* ============================================================
+   Dashboard ([reptilien-dashboard])
+   ============================================================ */
+.rm-stat-tiles {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 16px;
+	margin-bottom: 24px;
+}
+
+.rm-stat-tile {
+	background: var(--rm-surface);
+	border: 1px solid var(--rm-border);
+	border-radius: var(--rm-radius-lg);
+	padding: 20px;
+	text-align: center;
+	box-shadow: var(--rm-shadow-sm);
+}
+
+.rm-stat-tile__value {
+	display: block;
+	font-size: 2rem;
+	font-weight: 800;
+	line-height: 1.1;
+	color: var(--rm-primary);
+}
+
+.rm-stat-tile__label {
+	display: block;
+	margin-top: 6px;
+	font-size: 0.85rem;
+	color: var(--rm-muted);
+}
+
+.rm-dashboard-charts {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 20px;
+}
+
+.rm-chart-card {
+	background: var(--rm-surface);
+	border: 1px solid var(--rm-border);
+	border-radius: var(--rm-radius-lg);
+	padding: 18px;
+	box-shadow: var(--rm-shadow-sm);
+}
+
+.rm-chart-card--wide {
+	grid-column: 1 / -1;
+}
+
+.rm-chart-card h3 {
+	margin: 0 0 12px;
+	font-size: 1.05rem;
+	color: var(--rm-ink);
+}
+
+.rm-chart-card canvas {
+	max-height: 240px;
+}

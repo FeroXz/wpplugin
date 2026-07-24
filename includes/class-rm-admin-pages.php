@@ -27,12 +27,108 @@ class RM_Admin_Pages {
 
 		add_submenu_page(
 			'edit.php?post_type=rm_animal',
+			__( 'Verpaarungs-Empfehlungen', 'reptilien-manager' ),
+			__( 'Empfehlungen', 'reptilien-manager' ),
+			'edit_posts',
+			'rm-breeding',
+			array( __CLASS__, 'render_breeding_page' )
+		);
+
+		add_submenu_page(
+			'edit.php?post_type=rm_animal',
 			__( 'Futterplan', 'reptilien-manager' ),
 			__( 'Futterplan', 'reptilien-manager' ),
 			'edit_posts',
 			'rm-feeding-plan',
 			array( __CLASS__, 'render_feeding_plan_page' )
 		);
+	}
+
+	/**
+	 * Seite mit Verpaarungs-Empfehlungen (nach Inzucht-Koeffizient) und
+	 * Zuchtstatistik pro Tier.
+	 */
+	public static function render_breeding_page() {
+		$suggestions = RM_Breeding::recommend_pairings( 15 );
+		$animals     = RM_Post_Types::get_animals();
+		?>
+		<div class="wrap rm-wrap">
+			<h1><?php esc_html_e( 'Verpaarungs-Empfehlungen', 'reptilien-manager' ); ?></h1>
+			<p><?php esc_html_e( 'Vorschläge werden nach genetischer Vielfalt (niedriger Inzucht-Koeffizient), Artgleichheit und Zuchtreife sortiert. Der COI schätzt die Verwandtschaft des möglichen Nachwuchses aus der hinterlegten Abstammung.', 'reptilien-manager' ); ?></p>
+
+			<?php if ( ! $suggestions ) : ?>
+				<p><?php esc_html_e( 'Für Empfehlungen werden mindestens ein männliches und ein weibliches Tier benötigt.', 'reptilien-manager' ); ?></p>
+			<?php else : ?>
+				<table class="widefat striped rm-table rm-table--wide">
+					<thead>
+						<tr>
+							<th><?php esc_html_e( 'Vater (1.0)', 'reptilien-manager' ); ?></th>
+							<th><?php esc_html_e( 'Mutter (0.1)', 'reptilien-manager' ); ?></th>
+							<th><?php esc_html_e( 'COI', 'reptilien-manager' ); ?></th>
+							<th><?php esc_html_e( 'Bewertung', 'reptilien-manager' ); ?></th>
+							<th><?php esc_html_e( 'Zuchtreif', 'reptilien-manager' ); ?></th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php foreach ( $suggestions as $s ) : ?>
+							<tr>
+								<td>
+									<a href="<?php echo esc_url( get_edit_post_link( $s['sire']->ID ) ); ?>"><strong><?php echo esc_html( $s['sire']->post_title ); ?></strong></a>
+									<br /><span class="description"><?php echo esc_html( RM_Genetics::animal_morph_label( $s['sire']->ID ) ); ?></span>
+								</td>
+								<td>
+									<a href="<?php echo esc_url( get_edit_post_link( $s['dam']->ID ) ); ?>"><strong><?php echo esc_html( $s['dam']->post_title ); ?></strong></a>
+									<br /><span class="description"><?php echo esc_html( RM_Genetics::animal_morph_label( $s['dam']->ID ) ); ?></span>
+								</td>
+								<td><strong><?php echo esc_html( RM_Breeding::format_coi( $s['coi'] ) ); ?></strong></td>
+								<td>
+									<span class="rm-status rm-status--<?php echo esc_attr( $s['warning']['status'] ); ?>"><?php echo esc_html( $s['warning']['label'] ); ?></span>
+									<?php if ( ! $s['species_match'] ) : ?>
+										<br /><span class="rm-status rm-status--high"><?php esc_html_e( 'Verschiedene Arten', 'reptilien-manager' ); ?></span>
+									<?php endif; ?>
+								</td>
+								<td><?php echo $s['both_ready'] ? '✓' : '<span class="description">' . esc_html__( 'noch nicht', 'reptilien-manager' ) . '</span>'; ?></td>
+								<td>
+									<a class="button button-small" href="<?php echo esc_url( admin_url( 'edit.php?post_type=rm_animal&page=rm-genetics&rm_sire=' . $s['sire']->ID . '&rm_dam=' . $s['dam']->ID ) ); ?>"><?php esc_html_e( 'Genetik', 'reptilien-manager' ); ?></a>
+								</td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+
+				<h2><?php esc_html_e( 'Zuchtstatistik pro Tier', 'reptilien-manager' ); ?></h2>
+				<table class="widefat striped rm-table">
+					<thead>
+						<tr>
+							<th><?php esc_html_e( 'Tier', 'reptilien-manager' ); ?></th>
+							<th><?php esc_html_e( 'Verpaarungen', 'reptilien-manager' ); ?></th>
+							<th><?php esc_html_e( 'Nachkommen', 'reptilien-manager' ); ?></th>
+							<th><?php esc_html_e( 'Ø Schlupfquote', 'reptilien-manager' ); ?></th>
+							<th><?php esc_html_e( 'Eigener COI', 'reptilien-manager' ); ?></th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php
+						foreach ( $animals as $animal ) :
+							$stats = RM_Breeding::animal_stats( $animal->ID );
+							if ( ! $stats['pairings'] && ! RM_Breeding::inbreeding_coefficient( $animal->ID ) ) {
+								continue; // Nur Tiere mit Zucht-Bezug zeigen.
+							}
+							?>
+							<tr>
+								<td><a href="<?php echo esc_url( get_edit_post_link( $animal->ID ) ); ?>"><?php echo esc_html( $animal->post_title ); ?></a></td>
+								<td><?php echo esc_html( $stats['pairings'] ); ?></td>
+								<td><?php echo esc_html( $stats['offspring'] ); ?></td>
+								<td><?php echo esc_html( null === $stats['avg_hatch_rate'] ? '—' : round( $stats['avg_hatch_rate'] * 100 ) . ' %' ); ?></td>
+								<td><?php echo esc_html( RM_Breeding::format_coi( RM_Breeding::inbreeding_coefficient( $animal->ID ) ) ); ?></td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+			<?php endif; ?>
+		</div>
+		<?php
 	}
 
 	public static function render_genetics_page() {

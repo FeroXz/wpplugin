@@ -524,6 +524,17 @@ class RM_Pairing {
 			esc_html( '(' . RM_Genetics::animal_morph_label( $dam ) . ')' )
 		);
 
+		// Inzucht-Koeffizient des geplanten Nachwuchses.
+		$coi     = RM_Breeding::pair_coi( $sire, $dam );
+		$warning = RM_Breeding::coi_warning( $coi );
+		printf(
+			'<p class="rm-coi-line">🧬 <strong>%s %s</strong> <span class="rm-status rm-status--%s">%s</span></p>',
+			esc_html__( 'Inzucht-Koeffizient (COI):', 'reptilien-manager' ),
+			esc_html( RM_Breeding::format_coi( $coi ) ),
+			esc_attr( $warning['status'] ),
+			esc_html( $warning['label'] )
+		);
+
 		echo RM_Genetics::render_cross_result( $sire, $dam ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML wird intern escaped.
 	}
 
