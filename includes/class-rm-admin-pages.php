@@ -160,6 +160,89 @@ class RM_Admin_Pages {
 			'rm-feeding-plan',
 			array( __CLASS__, 'render_feeding_plan_page' )
 		);
+
+		add_submenu_page(
+			'edit.php?post_type=rm_animal',
+			__( 'Import / Export', 'reptilien-manager' ),
+			__( 'Import / Export', 'reptilien-manager' ),
+			'edit_posts',
+			'rm-backup',
+			array( __CLASS__, 'render_backup_page' )
+		);
+	}
+
+	/**
+	 * Seite für JSON-Backup, CSV-Import und PDF-Zuchtbuch.
+	 */
+	public static function render_backup_page() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nur Statusanzeige nach Redirect.
+		$msg     = isset( $_GET['rm_msg'] ) ? sanitize_key( $_GET['rm_msg'] ) : '';
+		$created = isset( $_GET['created'] ) ? absint( $_GET['created'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$can_import = current_user_can( 'manage_options' );
+		$base       = admin_url( 'admin-post.php' );
+		?>
+		<div class="wrap rm-wrap">
+			<h1><?php esc_html_e( 'Import / Export', 'reptilien-manager' ); ?></h1>
+
+			<?php
+			$notices = array(
+				'imported'     => array( 'success', __( 'Backup importiert.', 'reptilien-manager' ) ),
+				'import_error' => array( 'error', __( 'Keine Datei empfangen.', 'reptilien-manager' ) ),
+				'import_invalid' => array( 'error', __( 'Die Datei ist kein gültiges Reptilien-Backup.', 'reptilien-manager' ) ),
+				'csv_done'     => array( 'success', __( 'CSV-Import abgeschlossen.', 'reptilien-manager' ) ),
+				'csv_error'    => array( 'error', __( 'CSV konnte nicht gelesen werden.', 'reptilien-manager' ) ),
+				'csv_noname'   => array( 'error', __( 'In der CSV wurde keine Spalte „Name“ gefunden.', 'reptilien-manager' ) ),
+			);
+			if ( isset( $notices[ $msg ] ) ) {
+				printf(
+					'<div class="notice notice-%s is-dismissible"><p>%s%s</p></div>',
+					esc_attr( $notices[ $msg ][0] ),
+					esc_html( $notices[ $msg ][1] ),
+					'csv_done' === $msg ? ' ' . esc_html( sprintf( /* translators: %d: Anzahl */ __( '%d Tiere angelegt (als Entwurf).', 'reptilien-manager' ), $created ) ) : ''
+				);
+			}
+			?>
+
+			<div class="rm-cost-grid">
+				<div>
+					<h2><?php esc_html_e( '⬇ Export & Backup', 'reptilien-manager' ); ?></h2>
+					<p><?php esc_html_e( 'Sichert den kompletten Bestand (Tiere, Verpaarungen, Gelege, Fütterungen, Preise) als JSON – für Backups oder den Transfer zu einem anderen Züchter.', 'reptilien-manager' ); ?></p>
+					<p>
+						<a class="button button-primary" href="<?php echo esc_url( wp_nonce_url( $base . '?action=rm_backup_export', 'rm_backup_export' ) ); ?>"><?php esc_html_e( 'JSON-Backup herunterladen', 'reptilien-manager' ); ?></a>
+					</p>
+					<p>
+						<a class="button" target="_blank" rel="noopener" href="<?php echo esc_url( wp_nonce_url( $base . '?action=rm_studbook', 'rm_studbook' ) ); ?>"><?php esc_html_e( 'PDF-Zuchtbuch (Druckansicht)', 'reptilien-manager' ); ?></a>
+					</p>
+				</div>
+
+				<div>
+					<h2><?php esc_html_e( '⬆ Import', 'reptilien-manager' ); ?></h2>
+
+					<h3><?php esc_html_e( 'CSV-Import (Altdaten)', 'reptilien-manager' ); ?></h3>
+					<p class="description"><?php esc_html_e( 'Spalten (Kopfzeile): Name, Geschlecht, Schlupfdatum, Art, Herkunft, Länge, Gewicht, Kennzeichnung. Nur „Name“ ist Pflicht. Tiere werden als Entwurf angelegt.', 'reptilien-manager' ); ?></p>
+					<form method="post" action="<?php echo esc_url( $base ); ?>" enctype="multipart/form-data">
+						<input type="hidden" name="action" value="rm_backup_csv" />
+						<?php wp_nonce_field( 'rm_backup_csv' ); ?>
+						<input type="file" name="rm_csv_file" accept=".csv,text/csv" required />
+						<?php submit_button( __( 'CSV importieren', 'reptilien-manager' ), 'secondary', 'submit', false ); ?>
+					</form>
+
+					<?php if ( $can_import ) : ?>
+						<h3 style="margin-top:1.5em"><?php esc_html_e( 'JSON-Backup wiederherstellen', 'reptilien-manager' ); ?></h3>
+						<p class="description"><?php esc_html_e( 'Legt Tiere, Verpaarungen und Fütterungen aus einem Backup neu an (Verweise werden umgeschrieben). Medien/Fotos werden nicht übertragen.', 'reptilien-manager' ); ?></p>
+						<form method="post" action="<?php echo esc_url( $base ); ?>" enctype="multipart/form-data">
+							<input type="hidden" name="action" value="rm_backup_import" />
+							<?php wp_nonce_field( 'rm_backup_import' ); ?>
+							<input type="file" name="rm_backup_file" accept=".json,application/json" required />
+							<?php submit_button( __( 'Backup importieren', 'reptilien-manager' ), 'secondary', 'submit', false ); ?>
+						</form>
+					<?php else : ?>
+						<p class="description"><?php esc_html_e( 'Der JSON-Import (kompletter Bestand) erfordert Administrator-Rechte.', 'reptilien-manager' ); ?></p>
+					<?php endif; ?>
+				</div>
+			</div>
+		</div>
+		<?php
 	}
 
 	/**

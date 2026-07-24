@@ -3,7 +3,7 @@
  * Plugin Name:       Reptilien Manager
  * Plugin URI:        https://github.com/FeroXz/wpplugin
  * Description:       Verwaltung von Reptilien – Bartagame (Pogona vitticeps) und Grüner Leguan (Iguana iguana). Eigene Tiere mit Fotos und allen wichtigen Daten erfassen, Verpaarungen planen inkl. artspezifischer Genetik-Vorschau der Jungtiere sowie artgerechte Futterplanung und Fütterungsprotokoll.
- * Version:           1.8.0
+ * Version:           1.9.0
  * Author:            FeroXz
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'RM_VERSION', '1.8.0' );
+define( 'RM_VERSION', '1.9.0' );
 define( 'RM_PLUGIN_FILE', __FILE__ );
 define( 'RM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'RM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -31,6 +31,7 @@ require_once RM_PLUGIN_DIR . 'includes/class-rm-breeding.php';
 require_once RM_PLUGIN_DIR . 'includes/class-rm-animal-meta.php';
 require_once RM_PLUGIN_DIR . 'includes/class-rm-pairing.php';
 require_once RM_PLUGIN_DIR . 'includes/class-rm-feeding.php';
+require_once RM_PLUGIN_DIR . 'includes/class-rm-backup.php';
 require_once RM_PLUGIN_DIR . 'includes/class-rm-admin-pages.php';
 require_once RM_PLUGIN_DIR . 'includes/class-rm-templates.php';
 require_once RM_PLUGIN_DIR . 'includes/class-rm-stats.php';
@@ -58,6 +59,7 @@ final class Reptilien_Manager {
 		RM_Animal_Meta::init();
 		RM_Pairing::init();
 		RM_Feeding::init();
+		RM_Backup::init();
 		RM_Admin_Pages::init();
 		RM_Templates::init();
 		RM_Shortcodes::init();

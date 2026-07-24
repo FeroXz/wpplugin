@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.8.0
+Stable tag: 1.9.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -64,6 +64,13 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
 * Shortcode `[reptilien-genetik]` – Genetik-Rechner im Frontend: zwei Tiere wählen, mögliche Jungtiere samt Wahrscheinlichkeiten und Inzucht-Koeffizient berechnen
 * Design passend zum Theme „Wissenswerk“: übernimmt dessen CSS-Variablen (Farben, Dark-Mode) automatisch, funktioniert aber mit jedem Theme dank identischer Fallback-Werte
 
+**Import / Export & Backup**
+
+* JSON-Backup des kompletten Bestands (Tiere, Verpaarungen, Gelege, Fütterungen, Futterpreise) – für Sicherungen oder den Transfer zu einem anderen Züchter
+* JSON-Wiederherstellung/Transfer: legt alles neu an und schreibt die Verweise (Eltern-Verpaarung, Vater/Mutter, Fütterungs-Tiere) automatisch auf die neuen IDs um
+* CSV-Import für Altdaten (Spalten: Name, Geschlecht, Schlupfdatum, Art, Herkunft, Länge, Gewicht, Kennzeichnung) mit flexibler Datums- und Geschlechts-Erkennung
+* PDF-Zuchtbuch: druckbare Gesamtübersicht aller Tiere (über den Browser als PDF speicherbar)
+
 == Installation ==
 
 1. Plugin-Ordner in `wp-content/plugins/` hochladen oder als ZIP installieren.
@@ -81,6 +88,13 @@ Vollständige artspezifische Profile (Genetik-Rechner und Futterplan) gibt es f�
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.9.0 =
+* Neu: Seite „Import / Export“ im Reptilien-Menü.
+* Neu: JSON-Backup des gesamten Bestands (Export) und Wiederherstellung/Transfer mit automatischem Umschreiben aller ID-Verweise (Eltern-Verpaarung, Vater/Mutter, Fütterungs-Tiere).
+* Neu: CSV-Import für Altdaten mit flexibler Spalten-, Datums- und Geschlechts-Erkennung.
+* Neu: PDF-Zuchtbuch als druckbare Gesamtübersicht (über den Browser als PDF).
+* Sicherheit: Nonce- und Capability-Prüfungen (JSON-Import nur für Administratoren); nur Plugin-eigene Meta-Schlüssel werden importiert.
 
 = 1.8.0 =
 * Neu (Genetik): Export eines Punnett-Ergebnisses als JSON und als druckbare PDF-Ansicht (über den Browser) – Buttons im Genetik-Rechner.
