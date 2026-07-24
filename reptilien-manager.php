@@ -3,7 +3,7 @@
  * Plugin Name:       Reptilien Manager
  * Plugin URI:        https://github.com/FeroXz/wpplugin
  * Description:       Verwaltung von Reptilien – speziell Bartagamen (Pogona vitticeps). Eigene Tiere mit Fotos und allen wichtigen Daten erfassen, Verpaarungen planen inkl. Genetik-Vorschau der Jungtiere sowie Futterplanung und Fütterungsprotokoll.
- * Version:           1.2.0
+ * Version:           1.3.0
  * Author:            FeroXz
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'RM_VERSION', '1.2.0' );
+define( 'RM_VERSION', '1.3.0' );
 define( 'RM_PLUGIN_FILE', __FILE__ );
 define( 'RM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'RM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.2.0
+Stable tag: 1.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -45,7 +45,8 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien – mit Fokus auf Ba
 **Frontend**
 
 * Shortcode `[reptilien]` – Kartenübersicht aller veröffentlichten Tiere (optional `sex="male"` oder `sex="female"`)
-* Shortcode `[reptil id="123"]` – Detailprofil eines Tieres mit Galerie
+* Shortcode `[reptil id="123"]` – Detailprofil eines Tieres im Steckbrief-Layout mit Galerie
+* Design passend zum Theme „Wissenswerk“: übernimmt dessen CSS-Variablen (Farben, Dark-Mode) automatisch, funktioniert aber mit jedem Theme dank identischer Fallback-Werte
 
 == Installation ==
 
@@ -64,6 +65,12 @@ Der Fokus liegt auf Bartagamen (Genetik-Rechner und Futterplan). Über die Arten
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.3.0 =
+* Design an das Theme „Wissenswerk“ angeglichen (Indigo/Cyan-Verlauf, Karten mit Hover-Effekt, Pill-Chips, weiche Radien und Schatten).
+* Frontend: Tierübersicht als Karten-Raster mit Foto-Zoom, Geschlechts-Badge und Morph-Chip; Tierprofil im Steckbrief-Layout (Foto-Spalte mit Faktenliste, Inhalt rechts); Dark-Mode wird über die Theme-Variablen automatisch unterstützt.
+* Beitrags-Vorlagen: Banner mit Marken-Verlauf und weißer Schrift, Karten mit abgerundeten Ecken in Theme-Farben.
+* Admin: Tabellen, Galerie, Gelege- und Nachzucht-Listen im Theme-Look (Chips, Akzentbalken, Radien).
 
 = 1.2.0 =
 * Neu: Gelege-Verwaltung an Verpaarungen – mehrere Gelege mit Ablagedatum, Eizahl, geschlüpfter Anzahl und automatisch berechnetem Schlupftermin.

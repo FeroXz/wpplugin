@@ -57,25 +57,45 @@ class RM_Shortcodes {
 		$animals = get_posts( $args );
 
 		if ( ! $animals ) {
-			return '<p>' . esc_html__( 'Noch keine Tiere eingetragen.', 'reptilien-manager' ) . '</p>';
+			return '<p class="rm-notice">' . esc_html__( 'Noch keine Tiere eingetragen.', 'reptilien-manager' ) . '</p>';
 		}
 
 		ob_start();
 		echo '<div class="rm-animal-grid">';
 		foreach ( $animals as $animal ) {
-			$sexes = RM_Animal_Meta::sexes();
+			$sexes     = RM_Animal_Meta::sexes();
 			$sex_value = get_post_meta( $animal->ID, '_rm_sex', true );
+			$sex_label = isset( $sexes[ $sex_value ] ) ? $sexes[ $sex_value ] : $sexes['unknown'];
+			$birth     = get_post_meta( $animal->ID, '_rm_birth', true );
+			$species   = wp_get_post_terms( $animal->ID, 'rm_species', array( 'fields' => 'names' ) );
+
+			$meta_parts = array();
+			if ( $birth && RM_Animal_Meta::age_label( $birth ) ) {
+				$meta_parts[] = RM_Animal_Meta::age_label( $birth );
+			}
+			if ( is_array( $species ) && $species ) {
+				$meta_parts[] = implode( ', ', $species );
+			}
 			?>
-			<div class="rm-animal-card">
-				<a href="<?php echo esc_url( get_permalink( $animal ) ); ?>">
+			<article class="rm-animal-card">
+				<a class="rm-card__media" href="<?php echo esc_url( get_permalink( $animal ) ); ?>">
 					<?php if ( has_post_thumbnail( $animal ) ) : ?>
-						<?php echo get_the_post_thumbnail( $animal, 'medium' ); ?>
+						<?php echo get_the_post_thumbnail( $animal, 'medium_large' ); ?>
+					<?php else : ?>
+						<span class="rm-card__placeholder" aria-hidden="true">🦎</span>
 					<?php endif; ?>
-					<h3><?php echo esc_html( $animal->post_title ); ?></h3>
+					<span class="rm-card__badge"><?php echo esc_html( $sex_label ); ?></span>
 				</a>
-				<p class="rm-animal-morph"><?php echo esc_html( RM_Genetics::animal_morph_label( $animal->ID ) ); ?></p>
-				<p class="rm-animal-sex"><?php echo esc_html( isset( $sexes[ $sex_value ] ) ? $sexes[ $sex_value ] : $sexes['unknown'] ); ?></p>
-			</div>
+				<div class="rm-card__body">
+					<h3 class="rm-card__title">
+						<a href="<?php echo esc_url( get_permalink( $animal ) ); ?>"><?php echo esc_html( $animal->post_title ); ?></a>
+					</h3>
+					<p class="rm-card__morph"><?php echo esc_html( RM_Genetics::animal_morph_label( $animal->ID ) ); ?></p>
+					<?php if ( $meta_parts ) : ?>
+						<p class="rm-card__meta"><?php echo esc_html( implode( ' · ', $meta_parts ) ); ?></p>
+					<?php endif; ?>
+				</div>
+			</article>
 			<?php
 		}
 		echo '</div>';
@@ -95,7 +115,7 @@ class RM_Shortcodes {
 		$animal = get_post( absint( $atts['id'] ) );
 
 		if ( ! $animal || 'rm_animal' !== $animal->post_type || 'publish' !== $animal->post_status ) {
-			return '<p>' . esc_html__( 'Tier nicht gefunden.', 'reptilien-manager' ) . '</p>';
+			return '<p class="rm-notice">' . esc_html__( 'Tier nicht gefunden.', 'reptilien-manager' ) . '</p>';
 		}
 
 		$sexes   = RM_Animal_Meta::sexes();
@@ -105,84 +125,81 @@ class RM_Shortcodes {
 		$length  = get_post_meta( $animal->ID, '_rm_length', true );
 		$weights = get_post_meta( $animal->ID, '_rm_weights', true );
 		$gallery = get_post_meta( $animal->ID, '_rm_gallery', true );
+		$species = wp_get_post_terms( $animal->ID, 'rm_species', array( 'fields' => 'names' ) );
 
 		$last_weight = ( is_array( $weights ) && $weights ) ? end( $weights ) : null;
+
+		$facts = array();
+		if ( is_array( $species ) && $species ) {
+			$facts[ __( 'Art', 'reptilien-manager' ) ] = implode( ', ', $species );
+		}
+		$facts[ __( 'Geschlecht', 'reptilien-manager' ) ] = isset( $sexes[ $sex ] ) ? $sexes[ $sex ] : $sexes['unknown'];
+		if ( $birth && strtotime( $birth ) ) {
+			$facts[ __( 'Schlupf', 'reptilien-manager' ) ] = date_i18n( get_option( 'date_format' ), strtotime( $birth ) );
+			if ( RM_Animal_Meta::age_label( $birth ) ) {
+				$facts[ __( 'Alter', 'reptilien-manager' ) ] = RM_Animal_Meta::age_label( $birth );
+			}
+		}
+		if ( $origin ) {
+			$facts[ __( 'Herkunft', 'reptilien-manager' ) ] = $origin;
+		}
+		if ( $length ) {
+			$facts[ __( 'Länge', 'reptilien-manager' ) ] = $length . ' cm';
+		}
+		if ( $last_weight ) {
+			$weight_value = $last_weight['grams'] . ' g';
+			if ( ! empty( $last_weight['date'] ) && strtotime( $last_weight['date'] ) ) {
+				$weight_value .= ' (' . date_i18n( get_option( 'date_format' ), strtotime( $last_weight['date'] ) ) . ')';
+			}
+			$facts[ __( 'Gewicht', 'reptilien-manager' ) ] = $weight_value;
+		}
 
 		ob_start();
 		?>
 		<div class="rm-animal-profile">
-			<h2><?php echo esc_html( $animal->post_title ); ?></h2>
+			<aside class="rm-profile__aside">
+				<div class="rm-profile__photo">
+					<?php if ( has_post_thumbnail( $animal ) ) : ?>
+						<?php echo get_the_post_thumbnail( $animal, 'large' ); ?>
+					<?php else : ?>
+						<span class="rm-card__placeholder" aria-hidden="true">🦎</span>
+					<?php endif; ?>
+				</div>
 
-			<?php if ( has_post_thumbnail( $animal ) ) : ?>
-				<div class="rm-profile-photo"><?php echo get_the_post_thumbnail( $animal, 'large' ); ?></div>
-			<?php endif; ?>
+				<dl class="rm-profile__facts">
+					<?php foreach ( $facts as $label => $value ) : ?>
+						<div class="rm-profile__fact">
+							<dt><?php echo esc_html( $label ); ?></dt>
+							<dd><?php echo esc_html( $value ); ?></dd>
+						</div>
+					<?php endforeach; ?>
+				</dl>
+			</aside>
 
-			<table class="rm-profile-table">
-				<tr>
-					<th><?php esc_html_e( 'Morph / Genetik', 'reptilien-manager' ); ?></th>
-					<td><?php echo esc_html( RM_Genetics::animal_morph_label( $animal->ID ) ); ?></td>
-				</tr>
-				<tr>
-					<th><?php esc_html_e( 'Geschlecht', 'reptilien-manager' ); ?></th>
-					<td><?php echo esc_html( isset( $sexes[ $sex ] ) ? $sexes[ $sex ] : $sexes['unknown'] ); ?></td>
-				</tr>
-				<?php if ( $birth ) : ?>
-					<tr>
-						<th><?php esc_html_e( 'Schlupfdatum', 'reptilien-manager' ); ?></th>
-						<td>
+			<div class="rm-profile__body">
+				<h2 class="rm-profile__title"><?php echo esc_html( $animal->post_title ); ?></h2>
+				<p class="rm-profile__morph"><?php echo esc_html( RM_Genetics::animal_morph_label( $animal->ID ) ); ?></p>
+
+				<?php if ( $animal->post_content ) : ?>
+					<div class="rm-profile-description"><?php echo wp_kses_post( wpautop( $animal->post_content ) ); ?></div>
+				<?php endif; ?>
+
+				<?php if ( is_array( $gallery ) && $gallery ) : ?>
+					<div class="rm-profile-gallery">
+						<?php foreach ( $gallery as $attachment_id ) : ?>
 							<?php
-							echo esc_html( date_i18n( get_option( 'date_format' ), strtotime( $birth ) ) );
-							echo esc_html( ' (' . RM_Animal_Meta::age_label( $birth ) . ')' );
-							?>
-						</td>
-					</tr>
-				<?php endif; ?>
-				<?php if ( $origin ) : ?>
-					<tr>
-						<th><?php esc_html_e( 'Herkunft', 'reptilien-manager' ); ?></th>
-						<td><?php echo esc_html( $origin ); ?></td>
-					</tr>
-				<?php endif; ?>
-				<?php if ( $length ) : ?>
-					<tr>
-						<th><?php esc_html_e( 'Gesamtlänge', 'reptilien-manager' ); ?></th>
-						<td><?php echo esc_html( $length . ' cm' ); ?></td>
-					</tr>
-				<?php endif; ?>
-				<?php if ( $last_weight ) : ?>
-					<tr>
-						<th><?php esc_html_e( 'Letztes Gewicht', 'reptilien-manager' ); ?></th>
-						<td>
-							<?php
-							echo esc_html( $last_weight['grams'] . ' g' );
-							if ( ! empty( $last_weight['date'] ) && strtotime( $last_weight['date'] ) ) {
-								echo esc_html( ' (' . date_i18n( get_option( 'date_format' ), strtotime( $last_weight['date'] ) ) . ')' );
+							$full = wp_get_attachment_image_url( $attachment_id, 'full' );
+							if ( ! $full ) {
+								continue;
 							}
 							?>
-						</td>
-					</tr>
+							<a href="<?php echo esc_url( $full ); ?>">
+								<?php echo wp_get_attachment_image( $attachment_id, 'medium' ); ?>
+							</a>
+						<?php endforeach; ?>
+					</div>
 				<?php endif; ?>
-			</table>
-
-			<?php if ( $animal->post_content ) : ?>
-				<div class="rm-profile-description"><?php echo wp_kses_post( wpautop( $animal->post_content ) ); ?></div>
-			<?php endif; ?>
-
-			<?php if ( is_array( $gallery ) && $gallery ) : ?>
-				<div class="rm-profile-gallery">
-					<?php foreach ( $gallery as $attachment_id ) : ?>
-						<?php
-						$full = wp_get_attachment_image_url( $attachment_id, 'full' );
-						if ( ! $full ) {
-							continue;
-						}
-						?>
-						<a href="<?php echo esc_url( $full ); ?>">
-							<?php echo wp_get_attachment_image( $attachment_id, 'medium' ); ?>
-						</a>
-					<?php endforeach; ?>
-				</div>
-			<?php endif; ?>
+			</div>
 		</div>
 		<?php
 		return ob_get_clean();

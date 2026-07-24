@@ -281,15 +281,16 @@ class RM_Pairing {
 			<h4><?php esc_html_e( 'Verknüpfte Nachzuchten', 'reptilien-manager' ); ?></h4>
 			<ul class="rm-offspring-list">
 				<?php foreach ( $offspring as $child ) : ?>
+					<?php
+					$clutch_no  = (int) get_post_meta( $child->ID, '_rm_clutch', true );
+					$chip_label = $child->post_title;
+					if ( $clutch_no ) {
+						/* translators: %d: Gelege-Nummer */
+						$chip_label .= ' · ' . sprintf( __( 'Gelege %d', 'reptilien-manager' ), $clutch_no );
+					}
+					?>
 					<li>
-						<a href="<?php echo esc_url( get_edit_post_link( $child->ID ) ); ?>"><?php echo esc_html( $child->post_title ); ?></a>
-						<?php
-						$clutch_no = (int) get_post_meta( $child->ID, '_rm_clutch', true );
-						if ( $clutch_no ) {
-							/* translators: %d: Gelege-Nummer */
-							echo esc_html( ' – ' . sprintf( __( 'Gelege %d', 'reptilien-manager' ), $clutch_no ) );
-						}
-						?>
+						<a href="<?php echo esc_url( get_edit_post_link( $child->ID ) ); ?>"><?php echo esc_html( $chip_label ); ?></a>
 					</li>
 				<?php endforeach; ?>
 			</ul>

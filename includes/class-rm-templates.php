@@ -16,14 +16,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 class RM_Templates {
 
 	/**
-	 * Hintergrundfarbe für Banner-Karten.
+	 * Marken-Verlauf für Banner-Karten (Wissenswerk-Design: Indigo → Cyan).
 	 */
-	const COLOR_BANNER = '#eaf4ea';
+	const GRADIENT_BANNER = 'linear-gradient(135deg,#4f46e5 0%,#06b6d4 100%)';
 
 	/**
-	 * Hintergrundfarbe für Verpaarungs-Karten.
+	 * Hintergrundfarbe für Verpaarungs-Karten (Wissenswerk „surface-2“).
 	 */
-	const COLOR_CARD = '#f4f8f4';
+	const COLOR_CARD = '#eef2ff';
+
+	/**
+	 * Eckenradius für Karten (Wissenswerk „radius-lg“).
+	 */
+	const CARD_RADIUS = '22px';
 
 	public static function init() {
 		add_action( 'add_meta_boxes_rm_animal', array( __CLASS__, 'add_meta_box' ) );
@@ -298,7 +303,7 @@ class RM_Templates {
 	 * Block-Bausteine
 	 * ------------------------------------------------------------------ */
 
-	private static function heading( $text, $level = 2, $centered = false ) {
+	private static function heading( $text, $level = 2, $centered = false, $color = '' ) {
 		$attrs = array();
 		if ( $centered ) {
 			$attrs['textAlign'] = 'center';
@@ -306,26 +311,35 @@ class RM_Templates {
 		if ( 2 !== $level ) {
 			$attrs['level'] = $level;
 		}
+		if ( $color ) {
+			$attrs['style'] = array( 'color' => array( 'text' => $color ) );
+		}
 		$json  = $attrs ? ' ' . wp_json_encode( $attrs ) : '';
-		$class = 'wp-block-heading' . ( $centered ? ' has-text-align-center' : '' );
+		$class = 'wp-block-heading' . ( $centered ? ' has-text-align-center' : '' ) . ( $color ? ' has-text-color' : '' );
+		$style = $color ? ' style="color:' . esc_attr( $color ) . '"' : '';
 
-		return "<!-- wp:heading{$json} -->\n<h{$level} class=\"{$class}\">" . esc_html( $text ) . "</h{$level}>\n<!-- /wp:heading -->\n\n";
+		return "<!-- wp:heading{$json} -->\n<h{$level} class=\"{$class}\"{$style}>" . esc_html( $text ) . "</h{$level}>\n<!-- /wp:heading -->\n\n";
 	}
 
 	/**
 	 * Absatz-Block; $html muss bereits escaped/sicher sein.
 	 *
 	 * @param string $html    Innerer HTML-Inhalt.
-	 * @param array  $options 'center' => bool, 'large' => bool.
+	 * @param array  $options 'center' => bool, 'large' => bool, 'color' => Hex-Textfarbe.
 	 * @return string
 	 */
 	private static function paragraph( $html, $options = array() ) {
 		$attrs   = array();
 		$classes = array();
+		$color   = isset( $options['color'] ) ? $options['color'] : '';
 
 		if ( ! empty( $options['center'] ) ) {
 			$attrs['align'] = 'center';
 			$classes[]      = 'has-text-align-center';
+		}
+		if ( $color ) {
+			$attrs['style'] = array( 'color' => array( 'text' => $color ) );
+			$classes[]      = 'has-text-color';
 		}
 		if ( ! empty( $options['large'] ) ) {
 			$attrs['fontSize'] = 'large';
@@ -334,8 +348,9 @@ class RM_Templates {
 
 		$json  = $attrs ? ' ' . wp_json_encode( $attrs ) : '';
 		$class = $classes ? ' class="' . implode( ' ', $classes ) . '"' : '';
+		$style = $color ? ' style="color:' . esc_attr( $color ) . '"' : '';
 
-		return "<!-- wp:paragraph{$json} -->\n<p{$class}>" . $html . "</p>\n<!-- /wp:paragraph -->\n\n";
+		return "<!-- wp:paragraph{$json} -->\n<p{$class}{$style}>" . $html . "</p>\n<!-- /wp:paragraph -->\n\n";
 	}
 
 	private static function separator() {
@@ -343,32 +358,40 @@ class RM_Templates {
 	}
 
 	/**
-	 * Gruppen-Block mit Hintergrundfarbe (Karten-Optik).
+	 * Gruppen-Block als Karte: Hintergrundfarbe oder Verlauf, abgerundete Ecken.
 	 *
-	 * @param string $inner Innere Blöcke.
-	 * @param string $bg    Hex-Hintergrundfarbe.
+	 * @param string $inner    Innere Blöcke.
+	 * @param string $bg       Hex-Hintergrundfarbe (ignoriert, wenn $gradient gesetzt).
+	 * @param string $gradient CSS-Verlauf (optional).
 	 * @return string
 	 */
-	private static function group( $inner, $bg = self::COLOR_BANNER ) {
+	private static function group( $inner, $bg = self::COLOR_CARD, $gradient = '' ) {
+		$padding = array(
+			'top'    => '1.75rem',
+			'right'  => '1.75rem',
+			'bottom' => '1.75rem',
+			'left'   => '1.75rem',
+		);
+
+		$color_attr = $gradient ? array( 'gradient' => $gradient ) : array( 'background' => $bg );
+
 		$attrs = wp_json_encode(
 			array(
 				'style'  => array(
-					'color'   => array( 'background' => $bg ),
-					'spacing' => array(
-						'padding' => array(
-							'top'    => '1.5rem',
-							'right'  => '1.5rem',
-							'bottom' => '1.5rem',
-							'left'   => '1.5rem',
-						),
-					),
+					'border'  => array( 'radius' => self::CARD_RADIUS ),
+					'color'   => $color_attr,
+					'spacing' => array( 'padding' => $padding ),
 				),
 				'layout' => array( 'type' => 'constrained' ),
 			)
 		);
 
+		$background = $gradient
+			? 'background:' . esc_attr( $gradient )
+			: 'background-color:' . esc_attr( $bg );
+
 		return "<!-- wp:group {$attrs} -->\n"
-			. '<div class="wp-block-group has-background" style="background-color:' . esc_attr( $bg ) . ';padding-top:1.5rem;padding-right:1.5rem;padding-bottom:1.5rem;padding-left:1.5rem">' . "\n"
+			. '<div class="wp-block-group has-background" style="border-radius:' . esc_attr( self::CARD_RADIUS ) . ';' . $background . ';padding-top:1.75rem;padding-right:1.75rem;padding-bottom:1.75rem;padding-left:1.75rem">' . "\n"
 			. $inner
 			. "</div>\n<!-- /wp:group -->\n\n";
 	}
@@ -578,8 +601,15 @@ class RM_Templates {
 	 * @return string
 	 */
 	private static function banner( $data ) {
-		$inner  = self::heading( '🦎 ' . $data['title'], 2, true );
-		$inner .= self::paragraph( '<strong>' . esc_html( $data['morph'] ) . '</strong>', array( 'center' => true, 'large' => true ) );
+		$inner  = self::heading( '🦎 ' . $data['title'], 2, true, '#ffffff' );
+		$inner .= self::paragraph(
+			'<strong>' . esc_html( $data['morph'] ) . '</strong>',
+			array(
+				'center' => true,
+				'large'  => true,
+				'color'  => '#ffffff',
+			)
+		);
 
 		$meta_parts = array_filter(
 			array(
@@ -589,10 +619,16 @@ class RM_Templates {
 			)
 		);
 		if ( $meta_parts ) {
-			$inner .= self::paragraph( esc_html( implode( '  ·  ', $meta_parts ) ), array( 'center' => true ) );
+			$inner .= self::paragraph(
+				esc_html( implode( '  ·  ', $meta_parts ) ),
+				array(
+					'center' => true,
+					'color'  => '#e0f2fe',
+				)
+			);
 		}
 
-		return self::group( $inner, self::COLOR_BANNER );
+		return self::group( $inner, '', self::GRADIENT_BANNER );
 	}
 
 	/**
