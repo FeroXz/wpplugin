@@ -276,6 +276,47 @@ class RM_Breeding {
 	}
 
 	/**
+	 * Stammbaum (Ahnen) eines Tieres als verschachtelte Struktur.
+	 *
+	 * @param int $animal_id   Tier-ID (Wurzel).
+	 * @param int $generations Anzahl Ahnen-Generationen (1 = Eltern, 2 = Großeltern …).
+	 * @return array|null { id, name, morph, sire, dam }
+	 */
+	public static function ancestors( $animal_id, $generations = 3 ) {
+		return self::build_ancestor_node( $animal_id, max( 1, min( 6, (int) $generations ) ), 0 );
+	}
+
+	/**
+	 * Rekursiver Aufbau eines Stammbaum-Knotens.
+	 *
+	 * @param int $id    Tier-ID.
+	 * @param int $gen   Maximale Generationstiefe.
+	 * @param int $depth Aktuelle Tiefe.
+	 * @return array|null
+	 */
+	private static function build_ancestor_node( $id, $gen, $depth ) {
+		if ( ! $id ) {
+			return null;
+		}
+
+		$node = array(
+			'id'    => (int) $id,
+			'name'  => get_the_title( $id ),
+			'morph' => RM_Genetics::animal_morph_label( $id ),
+			'sire'  => null,
+			'dam'   => null,
+		);
+
+		if ( $depth < $gen ) {
+			list( $sire, $dam ) = self::parents( $id );
+			$node['sire'] = $sire ? self::build_ancestor_node( $sire, $gen, $depth + 1 ) : null;
+			$node['dam']  = $dam ? self::build_ancestor_node( $dam, $gen, $depth + 1 ) : null;
+		}
+
+		return $node;
+	}
+
+	/**
 	 * COI als Prozent formatieren.
 	 *
 	 * @param float $coi Koeffizient.

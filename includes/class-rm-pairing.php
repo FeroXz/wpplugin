@@ -536,6 +536,121 @@ class RM_Pairing {
 		);
 
 		echo RM_Genetics::render_cross_result( $sire, $dam ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML wird intern escaped.
+
+		self::render_expected_vs_actual( $post->ID );
+	}
+
+	/**
+	 * Vergleicht die erwartete Morph-Verteilung mit den tatsächlich
+	 * eingetragenen Nachzuchten (Lernfeedback).
+	 *
+	 * @param int $pairing_id Beitrags-ID der Verpaarung.
+	 * @return array|null { rows, total } oder null.
+	 */
+	public static function expected_vs_actual( $pairing_id ) {
+		$sire = (int) get_post_meta( $pairing_id, '_rm_sire', true );
+		$dam  = (int) get_post_meta( $pairing_id, '_rm_dam', true );
+		if ( ! $sire || ! $dam ) {
+			return null;
+		}
+
+		$result   = RM_Genetics::cross_animals( $sire, $dam );
+		$expected = array();
+		foreach ( $result['combined'] as $row ) {
+			$expected[ $row['label'] ] = $row['probability'];
+		}
+
+		$actual = array();
+		$total  = 0;
+		foreach ( self::offspring( $pairing_id ) as $child ) {
+			$morph = RM_Genetics::animal_morph_label( $child->ID );
+			$actual[ $morph ] = isset( $actual[ $morph ] ) ? $actual[ $morph ] + 1 : 1;
+			$total++;
+		}
+
+		if ( ! $total ) {
+			return null;
+		}
+
+		$labels = array_unique( array_merge( array_keys( $expected ), array_keys( $actual ) ) );
+		$rows   = array();
+		foreach ( $labels as $label ) {
+			$exp = isset( $expected[ $label ] ) ? $expected[ $label ] : 0.0;
+			$act = isset( $actual[ $label ] ) ? $actual[ $label ] : 0;
+			$rows[] = array(
+				'label'      => $label,
+				'expected'   => $exp,
+				'actual'     => $act,
+				'actual_pct' => $total ? $act / $total : 0.0,
+				'unexpected' => ! isset( $expected[ $label ] ),
+			);
+		}
+
+		usort(
+			$rows,
+			static function ( $a, $b ) {
+				return $b['expected'] <=> $a['expected'];
+			}
+		);
+
+		return array(
+			'rows'  => $rows,
+			'total' => $total,
+		);
+	}
+
+	/**
+	 * Rendert den Erwartet-vs-Tatsächlich-Vergleich in der Meta-Box.
+	 *
+	 * @param int $pairing_id Beitrags-ID der Verpaarung.
+	 */
+	private static function render_expected_vs_actual( $pairing_id ) {
+		$data = self::expected_vs_actual( $pairing_id );
+		if ( ! $data ) {
+			return;
+		}
+		?>
+		<h3><?php esc_html_e( 'Erwartet vs. Tatsächlich', 'reptilien-manager' ); ?></h3>
+		<p class="description">
+			<?php
+			printf(
+				/* translators: %d: Anzahl Nachzuchten */
+				esc_html__( 'Vergleich der genetischen Erwartung mit den %d eingetragenen Nachzuchten. Abweichungen sind bei kleinen Wurfgrößen normal.', 'reptilien-manager' ),
+				(int) $data['total']
+			);
+			?>
+		</p>
+		<table class="widefat striped rm-table">
+			<thead>
+				<tr>
+					<th><?php esc_html_e( 'Morph', 'reptilien-manager' ); ?></th>
+					<th><?php esc_html_e( 'Erwartet', 'reptilien-manager' ); ?></th>
+					<th><?php esc_html_e( 'Tatsächlich', 'reptilien-manager' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach ( $data['rows'] as $row ) : ?>
+					<tr<?php echo $row['unexpected'] ? ' class="rm-row-unexpected"' : ''; ?>>
+						<td>
+							<?php echo esc_html( $row['label'] ); ?>
+							<?php if ( $row['unexpected'] ) : ?>
+								<span class="rm-status rm-status--low"><?php esc_html_e( 'unerwartet', 'reptilien-manager' ); ?></span>
+							<?php endif; ?>
+						</td>
+						<td><?php echo esc_html( $row['expected'] > 0 ? RM_Genetics::format_percent( $row['expected'] ) : '—' ); ?></td>
+						<td>
+							<?php
+							echo esc_html( $row['actual'] );
+							if ( $row['actual'] > 0 ) {
+								echo ' (' . esc_html( RM_Genetics::format_percent( $row['actual_pct'] ) ) . ')';
+							}
+							?>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+		<?php
 	}
 
 	/* ---------------------------------------------------------------------

@@ -15,6 +15,8 @@ class RM_Shortcodes {
 		add_shortcode( 'reptilien', array( __CLASS__, 'animal_list' ) );
 		add_shortcode( 'reptil', array( __CLASS__, 'animal_profile' ) );
 		add_shortcode( 'reptilien-dashboard', array( __CLASS__, 'dashboard' ) );
+		add_shortcode( 'reptilien-stammbaum', array( __CLASS__, 'pedigree' ) );
+		add_shortcode( 'reptilien-genetik', array( __CLASS__, 'genetics_calculator' ) );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'register_styles' ) );
 	}
 
@@ -492,5 +494,178 @@ class RM_Shortcodes {
 		</div>
 		<?php
 		return ob_get_clean();
+	}
+
+	/**
+	 * [reptilien-stammbaum id="123" generationen="3"] – Ahnentafel eines Tieres.
+	 *
+	 * @param array $atts Shortcode-Attribute.
+	 * @return string
+	 */
+	public static function pedigree( $atts ) {
+		wp_enqueue_style( 'rm-frontend' );
+
+		$atts = shortcode_atts(
+			array(
+				'id'           => 0,
+				'generationen' => 3,
+			),
+			$atts,
+			'reptilien-stammbaum'
+		);
+
+		$animal = get_post( absint( $atts['id'] ) );
+		if ( ! $animal || 'rm_animal' !== $animal->post_type ) {
+			return '<p class="rm-notice">' . esc_html__( 'Tier nicht gefunden.', 'reptilien-manager' ) . '</p>';
+		}
+
+		$tree = RM_Breeding::ancestors( $animal->ID, (int) $atts['generationen'] );
+
+		ob_start();
+		echo '<div class="rm-pedigree">';
+		self::render_tree_node( $tree );
+		echo '</div>';
+		return ob_get_clean();
+	}
+
+	/**
+	 * Rekursives Rendern eines Stammbaum-Knotens.
+	 *
+	 * @param array|null $node Knoten aus RM_Breeding::ancestors().
+	 */
+	private static function render_tree_node( $node ) {
+		if ( ! $node ) {
+			return;
+		}
+		$has_parents = $node['sire'] || $node['dam'];
+		?>
+		<div class="rm-tree">
+			<div class="rm-tree__node">
+				<a href="<?php echo esc_url( get_permalink( $node['id'] ) ); ?>"><strong><?php echo esc_html( $node['name'] ); ?></strong></a>
+				<span class="rm-tree__morph"><?php echo esc_html( $node['morph'] ); ?></span>
+			</div>
+			<?php if ( $has_parents ) : ?>
+				<div class="rm-tree__parents">
+					<div class="rm-tree__branch rm-tree__branch--sire">
+						<?php
+						if ( $node['sire'] ) {
+							self::render_tree_node( $node['sire'] );
+						} else {
+							echo '<div class="rm-tree__node rm-tree__node--empty">♂ ' . esc_html__( 'unbekannt', 'reptilien-manager' ) . '</div>';
+						}
+						?>
+					</div>
+					<div class="rm-tree__branch rm-tree__branch--dam">
+						<?php
+						if ( $node['dam'] ) {
+							self::render_tree_node( $node['dam'] );
+						} else {
+							echo '<div class="rm-tree__node rm-tree__node--empty">♀ ' . esc_html__( 'unbekannt', 'reptilien-manager' ) . '</div>';
+						}
+						?>
+					</div>
+				</div>
+			<?php endif; ?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * [reptilien-genetik] – Genetik-Rechner im Frontend.
+	 *
+	 * @return string
+	 */
+	public static function genetics_calculator() {
+		wp_enqueue_style( 'rm-frontend' );
+
+		$animals = get_posts(
+			array(
+				'post_type'      => 'rm_animal',
+				'posts_per_page' => -1,
+				'post_status'    => 'publish',
+				'orderby'        => 'title',
+				'order'          => 'ASC',
+			)
+		);
+
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- reines Lese-Formular.
+		$sire = isset( $_GET['rm_gc_sire'] ) ? absint( $_GET['rm_gc_sire'] ) : 0;
+		$dam  = isset( $_GET['rm_gc_dam'] ) ? absint( $_GET['rm_gc_dam'] ) : 0;
+		// phpcs:enable
+
+		ob_start();
+		?>
+		<div class="rm-genetics-calc">
+			<form method="get" class="rm-filter-bar">
+				<label>
+					<span><?php esc_html_e( 'Vater (1.0)', 'reptilien-manager' ); ?></span>
+					<select name="rm_gc_sire">
+						<option value=""><?php esc_html_e( '– auswählen –', 'reptilien-manager' ); ?></option>
+						<?php foreach ( $animals as $a ) : ?>
+							<option value="<?php echo esc_attr( $a->ID ); ?>" <?php selected( $sire, $a->ID ); ?>><?php echo esc_html( $a->post_title ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</label>
+				<label>
+					<span><?php esc_html_e( 'Mutter (0.1)', 'reptilien-manager' ); ?></span>
+					<select name="rm_gc_dam">
+						<option value=""><?php esc_html_e( '– auswählen –', 'reptilien-manager' ); ?></option>
+						<?php foreach ( $animals as $a ) : ?>
+							<option value="<?php echo esc_attr( $a->ID ); ?>" <?php selected( $dam, $a->ID ); ?>><?php echo esc_html( $a->post_title ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</label>
+				<button type="submit" class="rm-filter-submit"><?php esc_html_e( 'Berechnen', 'reptilien-manager' ); ?></button>
+			</form>
+
+			<?php
+			if ( $sire && $dam ) {
+				self::render_cross_frontend( $sire, $dam );
+			}
+			?>
+		</div>
+		<?php
+		return ob_get_clean();
+	}
+
+	/**
+	 * Frontend-Darstellung eines Kreuzungs-Ergebnisses.
+	 *
+	 * @param int $sire Vater-ID.
+	 * @param int $dam  Mutter-ID.
+	 */
+	private static function render_cross_frontend( $sire, $dam ) {
+		$data = RM_Genetics::cross_export_array( $sire, $dam );
+		$coi  = RM_Breeding::pair_coi( $sire, $dam );
+		?>
+		<div class="rm-cross">
+			<p class="rm-cross__parents">
+				<strong><?php echo esc_html( $data['sire']['name'] ); ?></strong> <em>(<?php echo esc_html( $data['sire']['morph'] ); ?>)</em>
+				×
+				<strong><?php echo esc_html( $data['dam']['name'] ); ?></strong> <em>(<?php echo esc_html( $data['dam']['morph'] ); ?>)</em>
+			</p>
+			<p class="rm-cross__coi">
+				<?php
+				printf(
+					/* translators: %s: COI-Prozent */
+					esc_html__( 'Inzucht-Koeffizient: %s', 'reptilien-manager' ),
+					esc_html( RM_Breeding::format_coi( $coi ) )
+				);
+				?>
+			</p>
+
+			<h3><?php esc_html_e( 'Mögliche Jungtiere', 'reptilien-manager' ); ?></h3>
+			<table class="rm-cross__table">
+				<thead>
+					<tr><th><?php esc_html_e( 'Ergebnis', 'reptilien-manager' ); ?></th><th><?php esc_html_e( 'Wahrscheinlichkeit', 'reptilien-manager' ); ?></th></tr>
+				</thead>
+				<tbody>
+					<?php foreach ( $data['offspring_combined'] as $row ) : ?>
+						<tr><td><?php echo esc_html( $row['label'] ); ?></td><td><?php echo esc_html( $row['percent'] ); ?></td></tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+		</div>
+		<?php
 	}
 }

@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.7.0
+Stable tag: 1.8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -42,6 +42,8 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
 * Eigenständiger Genetik-Rechner zum Durchspielen beliebiger Paarungen
 * Inzucht-Koeffizient (COI nach Wright) für jede geplante Verpaarung – berechnet aus der hinterlegten Abstammung, mit Warnstufen (Geschwister/Halbgeschwister/entfernt)
 * Verpaarungs-Empfehlungen: alle Kombinationen nach genetischer Vielfalt (niedriger COI), Artgleichheit und Zuchtreife sortiert; Zuchtstatistik pro Tier (Verpaarungen, Nachkommen, Ø Schlupfquote, eigener COI)
+* Genetik-Export: Punnett-Ergebnis als JSON (Austausch mit anderen Züchtern) oder als druckbare Ansicht zum Speichern als PDF über den Browser
+* Erwartet vs. Tatsächlich: Vergleich der erwarteten Morph-Verteilung mit den real eingetragenen Nachzuchten je Verpaarung (Lernfeedback, markiert unerwartete Morphe)
 
 **Futterplanung**
 
@@ -58,6 +60,8 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
 * Shortcode `[reptilien]` – filterbare Kartenübersicht aller Tiere mit Filterleiste (Geschlecht, Art, Morph, Alter min/max, Sortierung nach Name/Alter/Gewicht); Attribute `sex`, `species`, `morph`, `sort`, `filter="no"` als Vorbelegung
 * Shortcode `[reptil id="123"]` – Detailprofil eines Tieres im Steckbrief-Layout mit Galerie
 * Shortcode `[reptilien-dashboard]` – Bestands-Dashboard mit Kennzahlen (Gesamtzahl, Geschlechter-Split, Ø Gewicht, Ø Schlupfquote) und Chart.js-Diagrammen (Geschlechter-, Alters- und Morph-Verteilung)
+* Shortcode `[reptilien-stammbaum id="123" generationen="3"]` – Ahnentafel eines Tieres mit verlinkten Vorfahren
+* Shortcode `[reptilien-genetik]` – Genetik-Rechner im Frontend: zwei Tiere wählen, mögliche Jungtiere samt Wahrscheinlichkeiten und Inzucht-Koeffizient berechnen
 * Design passend zum Theme „Wissenswerk“: übernimmt dessen CSS-Variablen (Farben, Dark-Mode) automatisch, funktioniert aber mit jedem Theme dank identischer Fallback-Werte
 
 == Installation ==
@@ -77,6 +81,12 @@ Vollständige artspezifische Profile (Genetik-Rechner und Futterplan) gibt es f�
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.8.0 =
+* Neu (Genetik): Export eines Punnett-Ergebnisses als JSON und als druckbare PDF-Ansicht (über den Browser) – Buttons im Genetik-Rechner.
+* Neu (Genetik): „Erwartet vs. Tatsächlich“ in der Verpaarung – vergleicht die erwartete Morph-Verteilung mit den eingetragenen Nachzuchten und markiert unerwartete Morphe.
+* Neu (Frontend): Shortcode `[reptilien-stammbaum]` – Ahnentafel mit verlinkten Vorfahren (Generationen einstellbar).
+* Neu (Frontend): Shortcode `[reptilien-genetik]` – Genetik-Rechner im Frontend inkl. Inzucht-Koeffizient.
 
 = 1.7.0 =
 * Neu (Genetik/Verpaarung): Inzucht-Koeffizient (COI nach Wright) je geplanter Verpaarung, berechnet aus der Abstammung, mit Warnstufen. Angezeigt in der Verpaarungs-Genetik-Box.

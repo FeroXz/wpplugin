@@ -430,3 +430,98 @@
 .rm-chart-card canvas {
 	max-height: 240px;
 }
+
+/* ============================================================
+   Stammbaum ([reptilien-stammbaum])
+   ============================================================ */
+.rm-pedigree {
+	overflow-x: auto;
+	padding: 8px 0;
+}
+
+.rm-tree {
+	display: flex;
+	align-items: center;
+	gap: 18px;
+}
+
+.rm-tree__node {
+	min-width: 150px;
+	background: var(--rm-surface);
+	border: 1px solid var(--rm-border);
+	border-left: 4px solid var(--rm-primary);
+	border-radius: var(--rm-radius-sm);
+	padding: 8px 12px;
+	box-shadow: var(--rm-shadow-sm);
+	font-size: 0.9rem;
+}
+
+.rm-tree__node a {
+	text-decoration: none;
+	color: var(--rm-ink);
+}
+
+.rm-tree__node--empty {
+	color: var(--rm-muted);
+	border-left-color: var(--rm-border);
+	font-style: italic;
+}
+
+.rm-tree__morph {
+	display: block;
+	font-size: 0.78rem;
+	color: var(--rm-muted);
+	margin-top: 2px;
+}
+
+.rm-tree__parents {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.rm-tree__branch {
+	position: relative;
+}
+
+.rm-tree__branch--sire .rm-tree__node {
+	border-left-color: var(--rm-primary);
+}
+
+.rm-tree__branch--dam .rm-tree__node {
+	border-left-color: var(--rm-accent);
+}
+
+/* ============================================================
+   Frontend-Genetik-Rechner ([reptilien-genetik])
+   ============================================================ */
+.rm-cross {
+	margin-top: 20px;
+}
+
+.rm-cross__parents {
+	font-size: 1.1rem;
+}
+
+.rm-cross__coi {
+	color: var(--rm-muted);
+	margin-top: -8px;
+}
+
+.rm-cross__table {
+	width: 100%;
+	border-collapse: collapse;
+	max-width: 560px;
+}
+
+.rm-cross__table th,
+.rm-cross__table td {
+	text-align: left;
+	padding: 8px 12px;
+	border-bottom: 1px solid var(--rm-border);
+}
+
+.rm-cross__table th {
+	background: var(--rm-surface-alt);
+	color: var(--rm-ink);
+}

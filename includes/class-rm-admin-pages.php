@@ -13,6 +13,124 @@ class RM_Admin_Pages {
 
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'register_pages' ) );
+		add_action( 'admin_post_rm_export_cross', array( __CLASS__, 'export_cross' ) );
+	}
+
+	/**
+	 * Export eines Punnett-Ergebnisses als JSON oder druckbare PDF-Ansicht.
+	 */
+	public static function export_cross() {
+		$sire = isset( $_GET['rm_sire'] ) ? absint( $_GET['rm_sire'] ) : 0;
+		$dam  = isset( $_GET['rm_dam'] ) ? absint( $_GET['rm_dam'] ) : 0;
+		$fmt  = isset( $_GET['format'] ) ? sanitize_key( $_GET['format'] ) : 'json';
+
+		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_key( $_GET['_wpnonce'] ), 'rm_export_cross' ) ) {
+			wp_die( esc_html__( 'Sicherheitsprüfung fehlgeschlagen.', 'reptilien-manager' ) );
+		}
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_die( esc_html__( 'Keine Berechtigung.', 'reptilien-manager' ) );
+		}
+		if ( ! $sire || ! $dam ) {
+			wp_die( esc_html__( 'Bitte Vater und Mutter angeben.', 'reptilien-manager' ) );
+		}
+
+		$data = RM_Genetics::cross_export_array( $sire, $dam );
+
+		if ( 'print' === $fmt ) {
+			self::render_cross_printable( $data );
+			exit;
+		}
+
+		nocache_headers();
+		header( 'Content-Type: application/json; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="verpaarung-' . $sire . 'x' . $dam . '.json"' );
+		echo wp_json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+		exit;
+	}
+
+	/**
+	 * Druckbare (per Browser als PDF speicherbare) Ansicht eines Kreuzungs-Ergebnisses.
+	 *
+	 * @param array $data Ergebnis von RM_Genetics::cross_export_array().
+	 */
+	private static function render_cross_printable( $data ) {
+		nocache_headers();
+		header( 'Content-Type: text/html; charset=utf-8' );
+		?>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title><?php echo esc_html( $data['sire']['name'] . ' × ' . $data['dam']['name'] ); ?></title>
+	<style>
+		body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1e293b; max-width: 820px; margin: 2rem auto; padding: 0 1.5rem; }
+		h1 { font-size: 1.6rem; border-bottom: 3px solid #4f46e5; padding-bottom: .4rem; }
+		h2 { font-size: 1.2rem; margin-top: 1.8rem; color: #3730a3; }
+		.parents { display: flex; gap: 1rem; margin: 1rem 0; }
+		.parent { flex: 1; background: #eef2ff; border-radius: 10px; padding: 1rem; }
+		.parent strong { display: block; font-size: 1.1rem; }
+		table { width: 100%; border-collapse: collapse; margin: .6rem 0 1.2rem; }
+		th, td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid #e2e8f0; }
+		th { background: #f8fafc; }
+		.muted { color: #64748b; font-size: .85rem; }
+		.print-btn { display: inline-block; margin: 1rem 0; padding: .6rem 1.3rem; background: #4f46e5; color: #fff; border: none; border-radius: 999px; font-size: 1rem; cursor: pointer; }
+		@media print { .print-btn { display: none; } body { margin: 0; } }
+	</style>
+</head>
+<body>
+	<button class="print-btn" onclick="window.print()"><?php esc_html_e( 'Drucken / als PDF speichern', 'reptilien-manager' ); ?></button>
+	<h1>🧬 <?php echo esc_html( $data['sire']['name'] . ' × ' . $data['dam']['name'] ); ?></h1>
+	<div class="parents">
+		<div class="parent">
+			<strong><?php echo esc_html( $data['sire']['name'] ); ?> ♂</strong>
+			<?php echo esc_html( $data['sire']['morph'] ); ?><br />
+			<span class="muted"><?php echo esc_html( $data['sire']['species'] ); ?></span>
+		</div>
+		<div class="parent">
+			<strong><?php echo esc_html( $data['dam']['name'] ); ?> ♀</strong>
+			<?php echo esc_html( $data['dam']['morph'] ); ?><br />
+			<span class="muted"><?php echo esc_html( $data['dam']['species'] ); ?></span>
+		</div>
+	</div>
+
+	<h2><?php esc_html_e( 'Mögliche Jungtiere (kombiniert)', 'reptilien-manager' ); ?></h2>
+	<table>
+		<thead><tr><th><?php esc_html_e( 'Ergebnis', 'reptilien-manager' ); ?></th><th><?php esc_html_e( 'Wahrscheinlichkeit', 'reptilien-manager' ); ?></th></tr></thead>
+		<tbody>
+			<?php foreach ( $data['offspring_combined'] as $row ) : ?>
+				<tr><td><?php echo esc_html( $row['label'] ); ?></td><td><?php echo esc_html( $row['percent'] ); ?></td></tr>
+			<?php endforeach; ?>
+		</tbody>
+	</table>
+
+	<?php if ( $data['per_gene'] ) : ?>
+		<h2><?php esc_html_e( 'Aufschlüsselung pro Gen', 'reptilien-manager' ); ?></h2>
+		<table>
+			<thead><tr><th><?php esc_html_e( 'Gen', 'reptilien-manager' ); ?></th><th><?php esc_html_e( 'Mögliche Ausprägungen', 'reptilien-manager' ); ?></th></tr></thead>
+			<tbody>
+				<?php foreach ( $data['per_gene'] as $gene ) : ?>
+					<tr>
+						<td><?php echo esc_html( $gene['gene'] ); ?></td>
+						<td>
+							<?php
+							$parts = array();
+							foreach ( $gene['outcomes'] as $o ) {
+								$parts[] = $o['percent'] . ' ' . $o['outcome'];
+							}
+							echo esc_html( implode( ' · ', $parts ) );
+							?>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+	<?php endif; ?>
+
+	<p class="muted"><?php echo esc_html( sprintf( /* translators: %s: Datum */ __( 'Erstellt am %s mit Reptilien Manager.', 'reptilien-manager' ), date_i18n( get_option( 'date_format' ) ) ) ); ?></p>
+</body>
+</html>
+		<?php
 	}
 
 	public static function register_pages() {
@@ -178,6 +296,16 @@ class RM_Admin_Pages {
 
 			<?php if ( $sire && $dam ) : ?>
 				<hr />
+				<?php
+				$export_base = wp_nonce_url(
+					admin_url( 'admin-post.php?action=rm_export_cross&rm_sire=' . $sire . '&rm_dam=' . $dam ),
+					'rm_export_cross'
+				);
+				?>
+				<p class="rm-export-buttons">
+					<a class="button" target="_blank" rel="noopener" href="<?php echo esc_url( $export_base . '&format=print' ); ?>"><?php esc_html_e( 'Druckansicht / PDF', 'reptilien-manager' ); ?></a>
+					<a class="button" href="<?php echo esc_url( $export_base . '&format=json' ); ?>"><?php esc_html_e( 'JSON exportieren', 'reptilien-manager' ); ?></a>
+				</p>
 				<?php echo RM_Genetics::render_cross_result( $sire, $dam ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML wird intern escaped. ?>
 			<?php endif; ?>
 		</div>

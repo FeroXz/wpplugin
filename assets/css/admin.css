@@ -541,3 +541,14 @@
 	padding: 4px 0;
 	border-bottom: 1px solid var(--rm-admin-border);
 }
+
+/* Erwartet-vs-Tatsächlich: unerwartete Zeile hervorheben */
+.rm-row-unexpected td:first-child {
+	border-left: 3px solid #f59e0b;
+}
+
+.rm-export-buttons {
+	margin: 12px 0;
+	display: flex;
+	gap: 8px;
+}

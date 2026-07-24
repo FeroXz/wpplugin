@@ -581,4 +581,62 @@ class RM_Genetics {
 		$formatted = ( floor( $percent ) === $percent ) ? number_format_i18n( $percent, 0 ) : number_format_i18n( $percent, 2 );
 		return $formatted . ' %';
 	}
+
+	/**
+	 * Strukturierte Kreuzungs-Daten für Export (JSON/PDF) und Frontend-Rechner.
+	 *
+	 * @param int $sire_id Beitrags-ID des Vaters.
+	 * @param int $dam_id  Beitrags-ID der Mutter.
+	 * @return array
+	 */
+	public static function cross_export_array( $sire_id, $dam_id ) {
+		$result = self::cross_animals( $sire_id, $dam_id );
+
+		$combined = array();
+		foreach ( $result['combined'] as $row ) {
+			$combined[] = array(
+				'label'       => $row['label'],
+				'probability' => round( $row['probability'], 4 ),
+				'percent'     => self::format_percent( $row['probability'] ),
+			);
+		}
+
+		$per_gene = array();
+		foreach ( $result['per_gene'] as $gene ) {
+			$outcomes = array();
+			foreach ( $gene['outcomes'] as $desc => $prob ) {
+				$outcomes[] = array(
+					'outcome'     => $desc,
+					'probability' => round( $prob, 4 ),
+					'percent'     => self::format_percent( $prob ),
+				);
+			}
+			$per_gene[] = array(
+				'gene'     => $gene['label'],
+				'outcomes' => $outcomes,
+			);
+		}
+
+		return array(
+			'meta'               => array(
+				'generated' => current_time( 'c' ),
+				'plugin'    => 'Reptilien Manager',
+				'version'   => defined( 'RM_VERSION' ) ? RM_VERSION : '',
+			),
+			'sire'               => array(
+				'id'      => (int) $sire_id,
+				'name'    => get_the_title( $sire_id ),
+				'morph'   => self::animal_morph_label( $sire_id ),
+				'species' => RM_Species::label( RM_Species::key_for_animal( $sire_id ) ),
+			),
+			'dam'                => array(
+				'id'      => (int) $dam_id,
+				'name'    => get_the_title( $dam_id ),
+				'morph'   => self::animal_morph_label( $dam_id ),
+				'species' => RM_Species::label( RM_Species::key_for_animal( $dam_id ) ),
+			),
+			'offspring_combined' => $combined,
+			'per_gene'           => $per_gene,
+		);
+	}
 }
