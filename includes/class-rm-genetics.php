@@ -171,12 +171,23 @@ class RM_Genetics {
 	 * @return array Gen-Schlüssel => Zustand.
 	 */
 	public static function get_animal_genes( $animal_id ) {
-		$stored  = get_post_meta( $animal_id, '_rm_genes', true );
-		$species = RM_Species::key_for_animal( $animal_id );
-		$genes   = array();
+		return self::get_animal_genes_for_species( $animal_id, RM_Species::key_for_animal( $animal_id ) );
+	}
+
+	/**
+	 * Gespeicherte Genzustände eines Tieres, gefiltert auf das Gen-Set einer
+	 * bestimmten Art (z. B. für die Live-Vorschau vor dem Speichern).
+	 *
+	 * @param int    $animal_id Beitrags-ID des Tieres.
+	 * @param string $species   Art-Schlüssel.
+	 * @return array Gen-Schlüssel => Zustand.
+	 */
+	public static function get_animal_genes_for_species( $animal_id, $species ) {
+		$stored = get_post_meta( $animal_id, '_rm_genes', true );
+		$genes  = array();
 
 		foreach ( array_keys( self::genes( $species ) ) as $key ) {
-			$state = isset( $stored[ $key ] ) ? $stored[ $key ] : '';
+			$state = ( is_array( $stored ) && isset( $stored[ $key ] ) ) ? $stored[ $key ] : '';
 			$genes[ $key ] = in_array( $state, array( 'het', 'homo' ), true ) ? $state : '';
 		}
 

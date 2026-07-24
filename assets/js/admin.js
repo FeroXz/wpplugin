@@ -107,6 +107,25 @@ jQuery( function ( $ ) {
 		this.value = '';
 	} );
 
+	// --- Tierart-Wechsel: Genetik-Felder live aktualisieren ----------------
+	$( document ).on( 'change', '#rm_species', function () {
+		var $spinner = $( '.rm-species-spinner' );
+		$spinner.addClass( 'is-active' );
+
+		$.post( window.ajaxurl, {
+			action: 'rm_species_genes',
+			nonce: $( '#rm_species_genes_nonce' ).val(),
+			post_id: $( '#post_ID' ).val(),
+			term_id: $( this ).val()
+		} ).done( function ( response ) {
+			if ( response && response.success && response.data && response.data.html ) {
+				$( '#rm-genetics-inner' ).html( response.data.html );
+			}
+		} ).always( function () {
+			$spinner.removeClass( 'is-active' );
+		} );
+	} );
+
 	// --- Fütterung: „Alle Tiere“-Umschalter --------------------------------
 	$( document ).on( 'change', '.rm-check-all', function () {
 		$( this )

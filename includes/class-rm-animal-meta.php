@@ -18,6 +18,17 @@ class RM_Animal_Meta {
 		add_action( 'manage_rm_animal_posts_custom_column', array( __CLASS__, 'admin_column_content' ), 10, 2 );
 		add_action( 'wp_ajax_rm_upload_photo', array( __CLASS__, 'ajax_upload_photo' ) );
 		add_action( 'admin_post_rm_export_weights', array( __CLASS__, 'export_weights_csv' ) );
+		add_action( 'wp_ajax_rm_species_genes', array( __CLASS__, 'ajax_species_genes' ) );
+		// Standard-Taxonomie-Box entfernen – die Art wird im Stammdaten-Feld gewählt.
+		add_action( 'add_meta_boxes', array( __CLASS__, 'remove_species_metabox' ), 11 );
+	}
+
+	/**
+	 * Entfernt die Standard-Auswahlbox der Arten-Taxonomie (eigene Auswahl
+	 * erfolgt im Stammdaten-Bereich).
+	 */
+	public static function remove_species_metabox() {
+		remove_meta_box( 'rm_speciesdiv', 'rm_animal', 'side' );
 	}
 
 	/**
@@ -167,8 +178,34 @@ class RM_Animal_Meta {
 		$tail        = get_post_meta( $post->ID, '_rm_tail', true );
 		$girth       = get_post_meta( $post->ID, '_rm_girth', true );
 		$is_public   = '0' !== (string) get_post_meta( $post->ID, '_rm_public', true );
+
+		// Arten aus der Taxonomie (angelegte Arten) für die Auswahl.
+		$species_terms = get_terms(
+			array(
+				'taxonomy'   => 'rm_species',
+				'hide_empty' => false,
+			)
+		);
+		$current_terms = wp_get_post_terms( $post->ID, 'rm_species', array( 'fields' => 'ids' ) );
+		$current_term  = ( is_array( $current_terms ) && $current_terms ) ? (int) $current_terms[0] : 0;
 		?>
 		<table class="form-table rm-form-table">
+			<tr>
+				<th><label for="rm_species"><?php esc_html_e( 'Tierart', 'reptilien-manager' ); ?></label></th>
+				<td>
+					<?php if ( is_wp_error( $species_terms ) || ! $species_terms ) : ?>
+						<p class="description"><?php esc_html_e( 'Noch keine Arten angelegt.', 'reptilien-manager' ); ?></p>
+					<?php else : ?>
+						<select name="rm_species" id="rm_species">
+							<?php foreach ( $species_terms as $term ) : ?>
+								<option value="<?php echo esc_attr( $term->term_id ); ?>" <?php selected( $current_term, $term->term_id ); ?>><?php echo esc_html( $term->name ); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<span class="spinner rm-species-spinner"></span>
+						<p class="description"><?php esc_html_e( 'Genetik-Felder und Futterplan richten sich automatisch nach der gewählten Art. Weitere Arten lassen sich unter „Reptilien → Arten“ anlegen.', 'reptilien-manager' ); ?></p>
+					<?php endif; ?>
+				</td>
+			</tr>
 			<tr>
 				<th><label for="rm_sex"><?php esc_html_e( 'Geschlecht', 'reptilien-manager' ); ?></label></th>
 				<td>
@@ -310,13 +347,30 @@ class RM_Animal_Meta {
 
 	public static function render_genetics( $post ) {
 		$species = RM_Species::key_for_animal( $post->ID );
-		$states  = RM_Genetics::get_animal_genes( $post->ID );
+		?>
+		<input type="hidden" id="rm_species_genes_nonce" value="<?php echo esc_attr( wp_create_nonce( 'rm_species_genes' ) ); ?>" />
+		<div id="rm-genetics-inner">
+			<?php self::render_genetics_inner( $post->ID, $species ); ?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Rendert die Genetik-Felder für eine Art (wiederverwendbar für AJAX bei
+	 * Artwechsel). Die gespeicherten Genwerte werden auf das Gen-Set der Art
+	 * gefiltert.
+	 *
+	 * @param int    $post_id Beitrags-ID.
+	 * @param string $species Art-Schlüssel.
+	 */
+	public static function render_genetics_inner( $post_id, $species ) {
+		$states = RM_Genetics::get_animal_genes_for_species( $post_id, $species );
 		?>
 		<p class="description">
 			<?php
 			printf(
 				/* translators: %s: Artname */
-				esc_html__( 'Genanlagen dieses Tieres (Art: %s) – Grundlage für die Genetik-Vorschau bei Verpaarungen. Wird die Art geändert, bitte speichern, damit die passenden Morphe erscheinen.', 'reptilien-manager' ),
+				esc_html__( 'Genanlagen dieses Tieres (Art: %s). Bei Artwechsel oben werden diese Felder automatisch aktualisiert.', 'reptilien-manager' ),
 				'<strong>' . esc_html( RM_Species::label( $species ) ) . '</strong>'
 			);
 			?>
@@ -337,9 +391,35 @@ class RM_Animal_Meta {
 		</table>
 		<p>
 			<strong><?php esc_html_e( 'Aktueller Morph:', 'reptilien-manager' ); ?></strong>
-			<?php echo esc_html( RM_Genetics::animal_morph_label( $post->ID ) ); ?>
+			<?php echo esc_html( RM_Genetics::morph_label_from_states( $states, $species ) ); ?>
 		</p>
 		<?php
+	}
+
+	/**
+	 * AJAX: liefert die Genetik-Felder für die gewählte Art (Live-Umschaltung).
+	 */
+	public static function ajax_species_genes() {
+		check_ajax_referer( 'rm_species_genes', 'nonce' );
+
+		$post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+		$allowed = $post_id ? current_user_can( 'edit_post', $post_id ) : current_user_can( 'edit_posts' );
+		if ( ! $allowed ) {
+			wp_send_json_error( array( 'message' => __( 'Keine Berechtigung.', 'reptilien-manager' ) ), 403 );
+		}
+
+		$term_id = isset( $_POST['term_id'] ) ? absint( $_POST['term_id'] ) : 0;
+		$species = RM_Species::DEFAULT_KEY;
+		if ( $term_id ) {
+			$term = get_term( $term_id, 'rm_species' );
+			if ( $term && ! is_wp_error( $term ) ) {
+				$species = RM_Species::key_from_term_names( array( $term->name ) );
+			}
+		}
+
+		ob_start();
+		self::render_genetics_inner( $post_id, $species );
+		wp_send_json_success( array( 'html' => ob_get_clean() ) );
 	}
 
 	public static function render_weights( $post ) {
@@ -541,6 +621,14 @@ class RM_Animal_Meta {
 		// Galerie.
 		$gallery = isset( $_POST['rm_gallery_ids'] ) ? array_map( 'absint', wp_unslash( (array) $_POST['rm_gallery_ids'] ) ) : array();
 		update_post_meta( $post_id, '_rm_gallery', array_values( array_filter( array_unique( $gallery ) ) ) );
+
+		// Tierart aus dem Auswahlfeld setzen (maßgeblich für Genetik und Futterplan).
+		if ( isset( $_POST['rm_species'] ) ) {
+			$term_id = absint( $_POST['rm_species'] );
+			if ( $term_id && term_exists( $term_id, 'rm_species' ) ) {
+				wp_set_object_terms( $post_id, array( $term_id ), 'rm_species' );
+			}
+		}
 
 		// Standard-Art setzen, wenn keine gewählt wurde (weniger Pflichtangaben).
 		$terms = wp_get_post_terms( $post_id, 'rm_species', array( 'fields' => 'ids' ) );

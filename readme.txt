@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.12.0
+Stable tag: 1.13.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,6 +21,7 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
 * Erweiterte Morphologie & Kondition: KRL, Schwanzlänge, Umfang, Körperkonditions-Score (BCS 1–5), Temperament (1–5), Farbintensität und Häutungs-Intervall
 * Gewichtsverlauf als interaktive Chart.js-Graphik (Alter × Gewicht) mit erwarteter Referenz-Wachstumskurve pro Art, Anomalie-Erkennung (unter-/übergewichtig) und CSV-Export
 * Freitext für Haltung, Gesundheit und Besonderheiten
+* Tierart direkt im Tier-Formular auswählbar (aus den angelegten Arten); die Genetik-Felder aktualisieren sich sofort per AJAX passend zur Art, ohne Zwischenspeichern
 * Arten-Taxonomie mit vorbereiteten Profilen: Bartagame (Pogona vitticeps) und Grüner Leguan (Iguana iguana) – Genetik-Set und Futterplan richten sich automatisch nach der zugeordneten Art
 * Beitrags-Vorlagen: Steckbrief (Tabelle), Ausführliches Porträt, Zuchttier-Präsentation und Kurzprofil – der Beitragstext wird per Klick automatisch aus den eingetragenen Daten erzeugt, inklusive Profilfoto und Galerie (Gutenberg-Blöcke, Classic-Editor-kompatibel)
 * Die Vorlagen zeigen automatisch Verpaarungen und Nachzuchten des Tieres – mit Verlinkung zum Partner und zu den Nachzucht-Tieren sowie Gelege-Übersicht (Eier, geschlüpft, erwarteter Schlupf)
@@ -108,6 +109,11 @@ Vollständige artspezifische Profile (Genetik-Rechner und Futterplan) gibt es f�
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.13.0 =
+* Neu: Tierart wird jetzt direkt im Stammdaten-Bereich des Tieres ausgewählt (aus den angelegten Arten); die separate Taxonomie-Box wird ausgeblendet.
+* Neu: Die Genetik-Felder (und der Morph) aktualisieren sich beim Artwechsel sofort per AJAX auf das passende Gen-Set – ohne Zwischenspeichern.
+* Gen-Werte verschiedener Arten werden unabhängig gespeichert, ein Artwechsel geht daher nicht verloren.
 
 = 1.12.0 =
 * Neu (Performance): Seitennummerierung im Shortcode `[reptilien]` (Attribut `per_page`, Standard 24).
