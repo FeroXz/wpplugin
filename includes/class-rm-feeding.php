@@ -991,6 +991,51 @@ class RM_Feeding {
 	}
 
 	/**
+	 * Legt einen Fütterungs-Eintrag an (Backend-Schnelleintrag wie Frontend).
+	 *
+	 * @param int[]    $animals Tier-IDs.
+	 * @param string   $date    Datum (Y-m-d).
+	 * @param string[] $foods   Futter-Schlüssel.
+	 * @param string   $amount  Mengenangabe.
+	 * @param string[] $supps   Supplement-Schlüssel.
+	 * @param string   $notes   Notizen.
+	 * @return int|WP_Error Beitrags-ID oder Fehler.
+	 */
+	public static function create_log( $animals, $date, $foods, $amount = '', $supps = array(), $notes = '' ) {
+		$animals = array_values( array_unique( array_filter( array_map( 'absint', (array) $animals ) ) ) );
+		$foods   = array_values( array_intersect( (array) $foods, array_keys( self::food_types() ) ) );
+
+		if ( ! $animals || ! $foods ) {
+			return new WP_Error( 'rm_feed_missing', __( 'Bitte mindestens ein Tier und eine Futterart wählen.', 'reptilien-manager' ) );
+		}
+
+		if ( ! $date || ! strtotime( $date ) ) {
+			$date = current_time( 'Y-m-d' );
+		}
+
+		$post_id = wp_insert_post(
+			array(
+				'post_type'   => 'rm_feeding_log',
+				'post_status' => current_user_can( 'publish_posts' ) ? 'publish' : 'pending',
+				'post_title'  => self::build_title( $date, $animals ),
+				'post_author' => get_current_user_id(),
+			),
+			true
+		);
+
+		if ( is_wp_error( $post_id ) ) {
+			return $post_id;
+		}
+		if ( ! $post_id ) {
+			return new WP_Error( 'rm_feed_insert', __( 'Der Eintrag konnte nicht gespeichert werden.', 'reptilien-manager' ) );
+		}
+
+		self::store_log_meta( $post_id, $animals, $date, $foods, $amount, $supps, $notes );
+
+		return $post_id;
+	}
+
+	/**
 	 * Schnell-Eintrag von der Futterplan-Seite verarbeiten.
 	 */
 	public static function handle_quick_feeding() {
@@ -1015,20 +1060,12 @@ class RM_Feeding {
 			exit;
 		}
 
-		$post_id = wp_insert_post(
-			array(
-				'post_type'   => 'rm_feeding_log',
-				'post_status' => 'publish',
-				'post_title'  => self::build_title( $date, $animals ),
-			)
-		);
+		$post_id = self::create_log( $animals, $date, $foods, $amount, $supps, $notes );
 
-		if ( is_wp_error( $post_id ) || ! $post_id ) {
+		if ( is_wp_error( $post_id ) ) {
 			wp_safe_redirect( add_query_arg( 'rm_msg', 'error', $redirect ) );
 			exit;
 		}
-
-		self::store_log_meta( $post_id, $animals, $date, $foods, $amount, $supps, $notes );
 
 		wp_safe_redirect( add_query_arg( 'rm_msg', 'saved', $redirect ) );
 		exit;

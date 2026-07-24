@@ -633,25 +633,40 @@ class RM_Shortcodes {
 	public static function genetics_calculator() {
 		wp_enqueue_style( 'rm-frontend' );
 
-		$animals = get_posts(
-			array(
-				'post_type'      => 'rm_animal',
-				'posts_per_page' => -1,
-				'post_status'    => 'publish',
-				'orderby'        => 'title',
-				'order'          => 'ASC',
-			)
+		$args = array(
+			'post_type'      => 'rm_animal',
+			'posts_per_page' => -1,
+			'post_status'    => 'publish',
+			'orderby'        => 'title',
+			'order'          => 'ASC',
 		);
+
+		// Eingeloggte Züchter rechnen auch mit eigenen, nicht öffentlichen Tieren.
+		if ( is_user_logged_in() && current_user_can( 'edit_posts' ) ) {
+			$args['post_status'] = array( 'publish', 'draft', 'private', 'pending' );
+			if ( ! current_user_can( 'edit_others_posts' ) ) {
+				$args['author'] = get_current_user_id();
+			}
+		}
+
+		$animals = get_posts( $args );
 
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- reines Lese-Formular.
 		$sire = isset( $_GET['rm_gc_sire'] ) ? absint( $_GET['rm_gc_sire'] ) : 0;
 		$dam  = isset( $_GET['rm_gc_dam'] ) ? absint( $_GET['rm_gc_dam'] ) : 0;
+		$tab  = isset( $_GET['rm_tab'] ) ? sanitize_key( $_GET['rm_tab'] ) : '';
 		// phpcs:enable
 
 		ob_start();
 		?>
 		<div class="rm-genetics-calc">
 			<form method="get" class="rm-filter-bar">
+				<?php if ( $tab ) : ?>
+					<input type="hidden" name="rm_tab" value="<?php echo esc_attr( $tab ); ?>" />
+				<?php endif; ?>
+				<?php if ( ! get_option( 'permalink_structure' ) && is_singular() ) : ?>
+					<input type="hidden" name="page_id" value="<?php echo esc_attr( get_queried_object_id() ); ?>" />
+				<?php endif; ?>
 				<label>
 					<span><?php esc_html_e( 'Vater (1.0)', 'reptilien-manager' ); ?></span>
 					<select name="rm_gc_sire">

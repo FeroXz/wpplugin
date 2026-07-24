@@ -563,3 +563,249 @@
 	color: #fff;
 	border-color: transparent;
 }
+
+/* ============================================================
+   Frontend-Verwaltung ([reptilien-verwaltung])
+   ============================================================ */
+.rm-manage {
+	display: flex;
+	flex-direction: column;
+	gap: 1.25rem;
+}
+
+.rm-manage__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.rm-manage__head h2 {
+	margin: 0;
+	color: var(--rm-ink);
+}
+
+.rm-manage__head .rm-filter-submit {
+	display: inline-flex;
+	align-items: center;
+	text-decoration: none;
+	color: #fff;
+}
+
+/* Reiter-Navigation */
+.rm-fe-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	border-bottom: 1px solid var(--rm-border);
+	padding-bottom: 10px;
+}
+
+.rm-fe-tab {
+	padding: 8px 16px;
+	border-radius: var(--rm-radius-pill);
+	background: var(--rm-surface-alt);
+	color: var(--rm-text);
+	text-decoration: none;
+	font-weight: 600;
+	transition: background var(--rm-transition), color var(--rm-transition);
+}
+
+.rm-fe-tab:hover {
+	background: var(--rm-surface-2);
+	color: var(--rm-primary);
+}
+
+.rm-fe-tab--active,
+.rm-fe-tab--active:hover {
+	background: var(--rm-gradient-brand);
+	color: #fff;
+}
+
+/* Statusmeldungen */
+.rm-notice--success {
+	border-left: 4px solid #10b981;
+	color: var(--rm-text);
+}
+
+.rm-notice--error {
+	border-left: 4px solid #ef4444;
+	color: var(--rm-text);
+}
+
+/* Tabellen */
+.rm-manage__scroll {
+	overflow-x: auto;
+}
+
+.rm-manage__table {
+	width: 100%;
+	border-collapse: collapse;
+	background: var(--rm-surface);
+	border: 1px solid var(--rm-border);
+	border-radius: var(--rm-radius);
+	overflow: hidden;
+}
+
+.rm-manage__table th,
+.rm-manage__table td {
+	text-align: left;
+	padding: 10px 14px;
+	border-bottom: 1px solid var(--rm-border);
+}
+
+.rm-manage__table th {
+	background: var(--rm-surface-alt);
+	color: var(--rm-ink);
+	font-size: 0.9rem;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+}
+
+.rm-manage__table tbody tr:last-child td {
+	border-bottom: none;
+}
+
+.rm-manage__table .rm-page-link {
+	min-width: 0;
+	height: auto;
+	padding: 6px 14px;
+	font-size: 0.9rem;
+}
+
+/* Formular */
+.rm-fe-form {
+	background: var(--rm-surface);
+	border: 1px solid var(--rm-border);
+	border-radius: var(--rm-radius-lg);
+	box-shadow: var(--rm-shadow-sm);
+	padding: 1.5rem;
+}
+
+.rm-fe-form h3 {
+	margin: 1.5rem 0 0.75rem;
+	color: var(--rm-ink);
+	font-size: 1.05rem;
+}
+
+.rm-fe-form h3:first-of-type {
+	margin-top: 0;
+}
+
+.rm-fe-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 16px;
+}
+
+.rm-fe-field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.rm-fe-field > span {
+	font-weight: 600;
+	font-size: 0.9rem;
+	color: var(--rm-ink);
+}
+
+.rm-fe-field input[type="text"],
+.rm-fe-field input[type="number"],
+.rm-fe-field input[type="date"],
+.rm-fe-field input[type="file"],
+.rm-fe-field select,
+.rm-fe-field textarea {
+	width: 100%;
+	padding: 8px 12px;
+	border: 1px solid var(--rm-border);
+	border-radius: var(--rm-radius-sm);
+	background: var(--rm-surface);
+	color: var(--rm-text);
+	font: inherit;
+}
+
+.rm-fe-field input:focus,
+.rm-fe-field select:focus,
+.rm-fe-field textarea:focus {
+	outline: none;
+	border-color: var(--rm-primary);
+	box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+.rm-fe-field--full {
+	grid-column: 1 / -1;
+}
+
+.rm-fe-check {
+	flex-direction: row;
+	align-items: center;
+	gap: 10px;
+}
+
+.rm-fe-check > span {
+	font-weight: 500;
+}
+
+.rm-fe-morph-note {
+	margin: 10px 0 0;
+	color: var(--rm-muted);
+	font-size: 0.9rem;
+}
+
+#rm-fe-genes.rm-is-loading {
+	opacity: 0.5;
+	pointer-events: none;
+	transition: opacity var(--rm-transition);
+}
+
+/* Mehrfachauswahl (Tiere, Futter, Supplemente) */
+.rm-fe-form .rm-choice-group {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.rm-fe-form .rm-choice-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+	gap: 8px;
+}
+
+.rm-fe-form .rm-choice-grid--narrow {
+	grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+
+.rm-fe-form .rm-choice {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	border: 1px solid var(--rm-border);
+	border-radius: var(--rm-radius-sm);
+	background: var(--rm-surface-alt);
+	cursor: pointer;
+	transition: border-color var(--rm-transition), background var(--rm-transition);
+}
+
+.rm-fe-form .rm-choice:hover {
+	border-color: var(--rm-primary);
+	background: var(--rm-surface-2);
+}
+
+.rm-fe-form .rm-choice--all {
+	background: var(--rm-surface-2);
+	border-style: dashed;
+}
+
+@media (max-width: 600px) {
+	.rm-fe-form {
+		padding: 1rem;
+	}
+
+	.rm-manage__head {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+}

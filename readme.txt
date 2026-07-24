@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.14.1
+Stable tag: 1.15.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -62,7 +62,8 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
 * Shortcode `[reptil id="123"]` – Detailprofil eines Tieres im Steckbrief-Layout mit Galerie
 * Shortcode `[reptilien-dashboard]` – Bestands-Dashboard mit Kennzahlen (Gesamtzahl, Geschlechter-Split, Ø Gewicht, Ø Schlupfquote) und Chart.js-Diagrammen (Geschlechter-, Alters- und Morph-Verteilung)
 * Shortcode `[reptilien-stammbaum id="123" generationen="3"]` – Ahnentafel eines Tieres mit verlinkten Vorfahren
-* Shortcode `[reptilien-genetik]` – Genetik-Rechner im Frontend: zwei Tiere wählen, mögliche Jungtiere samt Wahrscheinlichkeiten und Inzucht-Koeffizient berechnen
+* Shortcode `[reptilien-genetik]` – Genetik-Rechner im Frontend: zwei Tiere wählen, mögliche Jungtiere samt Wahrscheinlichkeiten und Inzucht-Koeffizient berechnen (eingeloggte Züchter rechnen auch mit ihren nicht öffentlichen Tieren)
+* Shortcode `[reptilien-verwaltung]` – komplette Verwaltung auf einer normalen Seite, ohne Backend-Zugang: Tiere anlegen und bearbeiten (inkl. Foto-Upload und artspezifischer Genetik, die beim Artwechsel per AJAX nachlädt), Fütterungen für mehrere Tiere protokollieren und Genetik-Rechner – je Reiter. Nur für eingeloggte Nutzer mit der nötigen Berechtigung; jeder sieht ausschließlich die eigenen Tiere. Attribut `tabs="tiere,fuetterung,genetik"` blendet Bereiche aus, die Berechtigung ist über den Filter `rm_frontend_manage_cap` anpassbar (Standard `edit_posts`)
 * Design passend zum Theme „Wissenswerk“: übernimmt dessen CSS-Variablen (Farben, Dark-Mode) automatisch, funktioniert aber mit jedem Theme dank identischer Fallback-Werte
 
 **Import / Export & Backup**
@@ -109,6 +110,14 @@ Vollständige artspezifische Profile (Genetik-Rechner und Futterplan) gibt es f�
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.15.0 =
+* Neu (Frontend): Shortcode `[reptilien-verwaltung]` – Tiere anlegen und bearbeiten, Fütterungen protokollieren und den Genetik-Rechner nutzen, alles direkt auf einer normalen Seite. Eingeloggte Nutzer mit der nötigen Berechtigung brauchen dafür keinen Backend-Zugang mehr.
+* Die Genetik-Felder im Frontend-Formular passen sich beim Wechsel der Tierart automatisch an (AJAX, ohne Neuladen) – wie im Backend.
+* Foto-Upload direkt aus dem Frontend-Formular (wird als Beitragsbild gesetzt), sofern der Nutzer Dateien hochladen darf.
+* Fütterungs-Schnelleintrag im Frontend inkl. „Alle Tiere“-Schalter, Supplementen und einer Übersicht der letzten Fütterungen mit Bewertung gegen das Optimum.
+* Der Genetik-Rechner (`[reptilien-genetik]`) bezieht für eingeloggte Züchter jetzt auch deren nicht öffentliche Tiere ein.
+* Sicherheit: Jeder Nutzer sieht und bearbeitet ausschließlich eigene Tiere (fremde nur mit `edit_others_posts`); alle Formulare sind Nonce-geschützt, die nötige Berechtigung ist per Filter `rm_frontend_manage_cap` anpassbar.
 
 = 1.14.1 =
 * Fix: Die Tierart-Auswahl in den Stammdaten war leer, wenn keine Arten-Begriffe existierten (z. B. nach einem Update ohne Reaktivierung). Die Standard-Arten (Bartagame, Grüner Leguan) werden jetzt beim Öffnen des Tier-Formulars sichergestellt, sodass das Dropdown immer befüllt ist.
