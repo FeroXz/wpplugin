@@ -1,6 +1,6 @@
 <?php
 /**
- * Futterplanung und Fütterungsprotokoll (speziell Bartagamen).
+ * Futterplanung, Fütterungsprotokoll und Fütterungs-Auswertung (speziell Bartagamen).
  *
  * @package Reptilien_Manager
  */
@@ -11,12 +11,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class RM_Feeding {
 
+	/**
+	 * Zeitraum der Auswertung in Tagen.
+	 */
+	const ANALYSIS_DAYS = 14;
+
 	public static function init() {
 		add_action( 'add_meta_boxes_rm_feeding_log', array( __CLASS__, 'add_meta_boxes' ) );
 		add_action( 'save_post_rm_feeding_log', array( __CLASS__, 'save' ), 10, 2 );
 		add_filter( 'manage_rm_feeding_log_posts_columns', array( __CLASS__, 'admin_columns' ) );
 		add_action( 'manage_rm_feeding_log_posts_custom_column', array( __CLASS__, 'admin_column_content' ), 10, 2 );
+		add_action( 'admin_post_rm_quick_feeding', array( __CLASS__, 'handle_quick_feeding' ) );
 	}
+
+	/* ---------------------------------------------------------------------
+	 * Stammdaten
+	 * ------------------------------------------------------------------ */
 
 	/**
 	 * Futterarten für Bartagamen.
@@ -39,6 +49,24 @@ class RM_Feeding {
 	}
 
 	/**
+	 * Futterarten, die als Insekten/tierisch zählen.
+	 *
+	 * @return string[]
+	 */
+	public static function insect_keys() {
+		return array( 'heimchen', 'grillen', 'heuschrecken', 'schaben', 'zophobas', 'mehlwuermer' );
+	}
+
+	/**
+	 * Futterarten, die als pflanzlich/Grünfutter zählen.
+	 *
+	 * @return string[]
+	 */
+	public static function plant_keys() {
+		return array( 'gruenfutter', 'gemuese', 'obst' );
+	}
+
+	/**
 	 * Supplemente.
 	 *
 	 * @return array
@@ -52,7 +80,7 @@ class RM_Feeding {
 	}
 
 	/**
-	 * Altersgerechter Bartagamen-Futterplan.
+	 * Altersgerechter Bartagamen-Futterplan (Beschreibungstexte).
 	 *
 	 * @param int|null $months Alter in Monaten oder null.
 	 * @return array { group, insects, greens, supplements }
@@ -103,6 +131,98 @@ class RM_Feeding {
 	}
 
 	/**
+	 * Ziel-Frequenzen (Fütterungen pro Woche) je Altersgruppe.
+	 *
+	 * @param int|null $months Alter in Monaten oder null.
+	 * @return array|null Kategorien insects/greens/calcium mit [min, max] pro Woche.
+	 */
+	public static function targets_for_age( $months ) {
+		if ( null === $months ) {
+			return null;
+		}
+
+		if ( $months < 6 ) {
+			return array(
+				'insects' => array( 7, 21 ),
+				'greens'  => array( 5, 7 ),
+				'calcium' => array( 5, 6 ),
+			);
+		}
+
+		if ( $months < 12 ) {
+			return array(
+				'insects' => array( 5, 7 ),
+				'greens'  => array( 6, 7 ),
+				'calcium' => array( 4, 5 ),
+			);
+		}
+
+		if ( $months < 18 ) {
+			return array(
+				'insects' => array( 3, 4 ),
+				'greens'  => array( 6, 7 ),
+				'calcium' => array( 3, 4 ),
+			);
+		}
+
+		return array(
+			'insects' => array( 2, 3 ),
+			'greens'  => array( 5, 7 ),
+			'calcium' => array( 2, 3 ),
+		);
+	}
+
+	/* ---------------------------------------------------------------------
+	 * Protokoll-Daten
+	 * ------------------------------------------------------------------ */
+
+	/**
+	 * Tiere eines Fütterungs-Eintrags (Mehrfach-Meta, abwärtskompatibel).
+	 *
+	 * @param int $log_id Beitrags-ID des Eintrags.
+	 * @return int[]
+	 */
+	public static function animals_for_log( $log_id ) {
+		$values = get_post_meta( $log_id, '_rm_feed_animal' );
+		return array_values( array_filter( array_map( 'absint', (array) $values ) ) );
+	}
+
+	/**
+	 * Futterarten eines Eintrags (Array, abwärtskompatibel zum alten Einzelfeld).
+	 *
+	 * @param int $log_id Beitrags-ID des Eintrags.
+	 * @return string[]
+	 */
+	public static function foods_for_log( $log_id ) {
+		$foods = get_post_meta( $log_id, '_rm_feed_foods', true );
+		if ( is_array( $foods ) && $foods ) {
+			return array_values( array_intersect( $foods, array_keys( self::food_types() ) ) );
+		}
+
+		$legacy = get_post_meta( $log_id, '_rm_feed_food', true );
+		if ( $legacy && array_key_exists( $legacy, self::food_types() ) ) {
+			return array( $legacy );
+		}
+
+		return array();
+	}
+
+	/**
+	 * Beschriftungen der Futterarten eines Eintrags.
+	 *
+	 * @param int $log_id Beitrags-ID.
+	 * @return string
+	 */
+	public static function foods_label( $log_id ) {
+		$all    = self::food_types();
+		$labels = array();
+		foreach ( self::foods_for_log( $log_id ) as $key ) {
+			$labels[] = $all[ $key ];
+		}
+		return implode( ', ', $labels );
+	}
+
+	/**
 	 * Letzte protokollierte Fütterung eines Tieres.
 	 *
 	 * @param int $animal_id Beitrags-ID des Tieres.
@@ -130,14 +250,191 @@ class RM_Feeding {
 			return null;
 		}
 
-		$foods = self::food_types();
-		$food  = get_post_meta( $logs[0]->ID, '_rm_feed_food', true );
-
 		return array(
 			'date' => get_post_meta( $logs[0]->ID, '_rm_feed_date', true ),
-			'food' => isset( $foods[ $food ] ) ? $foods[ $food ] : $food,
+			'food' => self::foods_label( $logs[0]->ID ),
 		);
 	}
+
+	/**
+	 * Auswertung: tatsächliche Fütterungs-Frequenz vs. altersgerechtes Optimum.
+	 *
+	 * @param int $animal_id Beitrags-ID des Tieres.
+	 * @param int $days      Auswertungszeitraum in Tagen.
+	 * @return array {
+	 *     @type bool  $has_targets Ob Zielwerte vorliegen (Schlupfdatum bekannt).
+	 *     @type bool  $has_data    Ob Fütterungen im Zeitraum protokolliert sind.
+	 *     @type int   $days        Zeitraum.
+	 *     @type array $categories  Kategorie => { label, rate, min, max, status(ok|low|high) }.
+	 * }
+	 */
+	public static function analyze_animal( $animal_id, $days = self::ANALYSIS_DAYS ) {
+		$birth   = get_post_meta( $animal_id, '_rm_birth', true );
+		$months  = $birth ? RM_Animal_Meta::age_in_months( $birth ) : null;
+		$targets = self::targets_for_age( $months );
+
+		$result = array(
+			'has_targets' => (bool) $targets,
+			'has_data'    => false,
+			'days'        => $days,
+			'categories'  => array(),
+		);
+
+		if ( ! $targets ) {
+			return $result;
+		}
+
+		$since = gmdate( 'Y-m-d', time() - $days * DAY_IN_SECONDS );
+
+		$logs = get_posts(
+			array(
+				'post_type'      => 'rm_feeding_log',
+				'posts_per_page' => -1,
+				'post_status'    => array( 'publish', 'draft', 'private' ),
+				'meta_query'     => array(
+					array(
+						'key'   => '_rm_feed_animal',
+						'value' => $animal_id,
+					),
+					array(
+						'key'     => '_rm_feed_date',
+						'value'   => $since,
+						'compare' => '>=',
+						'type'    => 'DATE',
+					),
+				),
+			)
+		);
+
+		$counts = array(
+			'insects' => 0,
+			'greens'  => 0,
+			'calcium' => 0,
+		);
+
+		foreach ( $logs as $log ) {
+			$foods = self::foods_for_log( $log->ID );
+			if ( array_intersect( $foods, self::insect_keys() ) ) {
+				$counts['insects']++;
+			}
+			if ( array_intersect( $foods, self::plant_keys() ) ) {
+				$counts['greens']++;
+			}
+
+			$supps = get_post_meta( $log->ID, '_rm_feed_supplements', true );
+			if ( is_array( $supps ) && array_intersect( $supps, array( 'calcium', 'calcium_d3' ) ) ) {
+				$counts['calcium']++;
+			}
+		}
+
+		$result['has_data'] = ! empty( $logs );
+
+		$labels = array(
+			'insects' => __( 'Insekten', 'reptilien-manager' ),
+			'greens'  => __( 'Grünfutter', 'reptilien-manager' ),
+			'calcium' => __( 'Calcium', 'reptilien-manager' ),
+		);
+
+		foreach ( $targets as $key => $range ) {
+			$rate = $counts[ $key ] * 7 / $days;
+
+			if ( $rate < $range[0] ) {
+				$status = 'low';
+			} elseif ( $rate > $range[1] ) {
+				$status = 'high';
+			} else {
+				$status = 'ok';
+			}
+
+			$result['categories'][ $key ] = array(
+				'label'  => $labels[ $key ],
+				'rate'   => $rate,
+				'min'    => $range[0],
+				'max'    => $range[1],
+				'status' => $status,
+			);
+		}
+
+		return $result;
+	}
+
+	/* ---------------------------------------------------------------------
+	 * Auswahl-Felder (gemeinsam für Meta-Box und Schnell-Eintrag)
+	 * ------------------------------------------------------------------ */
+
+	/**
+	 * Checkbox-Raster für die Tierauswahl inkl. „Alle“-Schalter.
+	 *
+	 * @param int[] $selected Vorausgewählte Tier-IDs.
+	 */
+	public static function render_animal_choices( $selected = array() ) {
+		$animals = RM_Post_Types::get_animals();
+
+		if ( ! $animals ) {
+			echo '<p class="description">' . esc_html__( 'Noch keine Tiere eingetragen.', 'reptilien-manager' ) . '</p>';
+			return;
+		}
+		?>
+		<div class="rm-choice-group">
+			<label class="rm-choice rm-choice--all">
+				<input type="checkbox" class="rm-check-all" />
+				<strong><?php esc_html_e( 'Alle Tiere', 'reptilien-manager' ); ?></strong>
+			</label>
+			<div class="rm-choice-grid">
+				<?php foreach ( $animals as $animal ) : ?>
+					<label class="rm-choice">
+						<input type="checkbox" class="rm-choice-cb" name="rm_feed_animals[]" value="<?php echo esc_attr( $animal->ID ); ?>" <?php checked( in_array( (int) $animal->ID, $selected, true ) ); ?> />
+						<?php echo esc_html( $animal->post_title ); ?>
+					</label>
+				<?php endforeach; ?>
+			</div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Checkbox-Raster für die Futterarten.
+	 *
+	 * @param string[] $selected Vorausgewählte Futter-Schlüssel.
+	 */
+	public static function render_food_choices( $selected = array() ) {
+		?>
+		<div class="rm-choice-group">
+			<div class="rm-choice-grid">
+				<?php foreach ( self::food_types() as $key => $label ) : ?>
+					<label class="rm-choice">
+						<input type="checkbox" name="rm_feed_foods[]" value="<?php echo esc_attr( $key ); ?>" <?php checked( in_array( $key, $selected, true ) ); ?> />
+						<?php echo esc_html( $label ); ?>
+					</label>
+				<?php endforeach; ?>
+			</div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Checkboxen für Supplemente.
+	 *
+	 * @param string[] $selected Vorausgewählte Schlüssel.
+	 */
+	public static function render_supplement_choices( $selected = array() ) {
+		?>
+		<div class="rm-choice-group">
+			<div class="rm-choice-grid rm-choice-grid--narrow">
+				<?php foreach ( self::supplements() as $key => $label ) : ?>
+					<label class="rm-choice">
+						<input type="checkbox" name="rm_feed_supplements[]" value="<?php echo esc_attr( $key ); ?>" <?php checked( in_array( $key, $selected, true ) ); ?> />
+						<?php echo esc_html( $label ); ?>
+					</label>
+				<?php endforeach; ?>
+			</div>
+		</div>
+		<?php
+	}
+
+	/* ---------------------------------------------------------------------
+	 * Meta-Box
+	 * ------------------------------------------------------------------ */
 
 	public static function add_meta_boxes() {
 		add_meta_box( 'rm-feeding-details', __( 'Fütterungsdaten', 'reptilien-manager' ), array( __CLASS__, 'render_details' ), 'rm_feeding_log', 'normal', 'high' );
@@ -146,9 +443,9 @@ class RM_Feeding {
 	public static function render_details( $post ) {
 		wp_nonce_field( 'rm_feeding_meta', 'rm_feeding_meta_nonce' );
 
-		$animal      = (int) get_post_meta( $post->ID, '_rm_feed_animal', true );
+		$animals     = self::animals_for_log( $post->ID );
 		$date        = get_post_meta( $post->ID, '_rm_feed_date', true );
-		$food        = get_post_meta( $post->ID, '_rm_feed_food', true );
+		$foods       = self::foods_for_log( $post->ID );
 		$amount      = get_post_meta( $post->ID, '_rm_feed_amount', true );
 		$supplements = get_post_meta( $post->ID, '_rm_feed_supplements', true );
 		$notes       = get_post_meta( $post->ID, '_rm_feed_notes', true );
@@ -160,46 +457,27 @@ class RM_Feeding {
 			$date = current_time( 'Y-m-d' );
 		}
 		?>
+		<p class="description"><?php esc_html_e( 'Der Titel wird automatisch aus Datum und Tieren erzeugt – einfach leer lassen. Schneller geht es über den Schnell-Eintrag auf der Futterplan-Seite.', 'reptilien-manager' ); ?></p>
 		<table class="form-table rm-form-table">
-			<tr>
-				<th><label for="rm_feed_animal"><?php esc_html_e( 'Tier', 'reptilien-manager' ); ?></label></th>
-				<td>
-					<select name="rm_feed_animal" id="rm_feed_animal">
-						<option value=""><?php esc_html_e( '– auswählen –', 'reptilien-manager' ); ?></option>
-						<?php foreach ( RM_Post_Types::get_animals() as $a ) : ?>
-							<option value="<?php echo esc_attr( $a->ID ); ?>" <?php selected( $animal, $a->ID ); ?>><?php echo esc_html( $a->post_title ); ?></option>
-						<?php endforeach; ?>
-					</select>
-				</td>
-			</tr>
 			<tr>
 				<th><label for="rm_feed_date"><?php esc_html_e( 'Datum', 'reptilien-manager' ); ?></label></th>
 				<td><input type="date" name="rm_feed_date" id="rm_feed_date" value="<?php echo esc_attr( $date ); ?>" /></td>
 			</tr>
 			<tr>
-				<th><label for="rm_feed_food"><?php esc_html_e( 'Futter', 'reptilien-manager' ); ?></label></th>
-				<td>
-					<select name="rm_feed_food" id="rm_feed_food">
-						<?php foreach ( self::food_types() as $key => $label ) : ?>
-							<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $food, $key ); ?>><?php echo esc_html( $label ); ?></option>
-						<?php endforeach; ?>
-					</select>
-				</td>
+				<th><?php esc_html_e( 'Tiere', 'reptilien-manager' ); ?></th>
+				<td><?php self::render_animal_choices( $animals ); ?></td>
+			</tr>
+			<tr>
+				<th><?php esc_html_e( 'Futter', 'reptilien-manager' ); ?></th>
+				<td><?php self::render_food_choices( $foods ); ?></td>
 			</tr>
 			<tr>
 				<th><label for="rm_feed_amount"><?php esc_html_e( 'Menge', 'reptilien-manager' ); ?></label></th>
-				<td><input type="text" class="regular-text" name="rm_feed_amount" id="rm_feed_amount" value="<?php echo esc_attr( $amount ); ?>" placeholder="<?php esc_attr_e( 'z. B. 5 Stück, 1 Handvoll', 'reptilien-manager' ); ?>" /></td>
+				<td><input type="text" class="regular-text" name="rm_feed_amount" id="rm_feed_amount" value="<?php echo esc_attr( $amount ); ?>" placeholder="<?php esc_attr_e( 'z. B. 5 Stück pro Tier, 1 Handvoll', 'reptilien-manager' ); ?>" /></td>
 			</tr>
 			<tr>
 				<th><?php esc_html_e( 'Supplemente', 'reptilien-manager' ); ?></th>
-				<td>
-					<?php foreach ( self::supplements() as $key => $label ) : ?>
-						<label class="rm-checkbox">
-							<input type="checkbox" name="rm_feed_supplements[]" value="<?php echo esc_attr( $key ); ?>" <?php checked( in_array( $key, $supplements, true ) ); ?> />
-							<?php echo esc_html( $label ); ?>
-						</label><br />
-					<?php endforeach; ?>
-				</td>
+				<td><?php self::render_supplement_choices( $supplements ); ?></td>
 			</tr>
 			<tr>
 				<th><label for="rm_feed_notes"><?php esc_html_e( 'Notizen', 'reptilien-manager' ); ?></label></th>
@@ -208,6 +486,10 @@ class RM_Feeding {
 		</table>
 		<?php
 	}
+
+	/* ---------------------------------------------------------------------
+	 * Speichern
+	 * ------------------------------------------------------------------ */
 
 	public static function save( $post_id, $post ) {
 		if ( ! isset( $_POST['rm_feeding_meta_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_POST['rm_feeding_meta_nonce'] ), 'rm_feeding_meta' ) ) {
@@ -220,34 +502,170 @@ class RM_Feeding {
 			return;
 		}
 
-		update_post_meta( $post_id, '_rm_feed_animal', isset( $_POST['rm_feed_animal'] ) ? absint( $_POST['rm_feed_animal'] ) : 0 );
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- oben geprüft.
+		$animals = isset( $_POST['rm_feed_animals'] ) ? array_map( 'absint', wp_unslash( (array) $_POST['rm_feed_animals'] ) ) : array();
+		$date    = isset( $_POST['rm_feed_date'] ) ? sanitize_text_field( wp_unslash( $_POST['rm_feed_date'] ) ) : '';
+		$foods   = isset( $_POST['rm_feed_foods'] ) ? array_map( 'sanitize_key', wp_unslash( (array) $_POST['rm_feed_foods'] ) ) : array();
+		$amount  = isset( $_POST['rm_feed_amount'] ) ? sanitize_text_field( wp_unslash( $_POST['rm_feed_amount'] ) ) : '';
+		$supps   = isset( $_POST['rm_feed_supplements'] ) ? array_map( 'sanitize_key', wp_unslash( (array) $_POST['rm_feed_supplements'] ) ) : array();
+		$notes   = isset( $_POST['rm_feed_notes'] ) ? sanitize_textarea_field( wp_unslash( $_POST['rm_feed_notes'] ) ) : '';
+		// phpcs:enable
 
-		$date = isset( $_POST['rm_feed_date'] ) ? sanitize_text_field( wp_unslash( $_POST['rm_feed_date'] ) ) : '';
+		self::store_log_meta( $post_id, $animals, $date, $foods, $amount, $supps, $notes );
+		self::maybe_autotitle( $post_id, $post->post_title, $date, $animals );
+	}
+
+	/**
+	 * Meta-Daten eines Fütterungs-Eintrags speichern.
+	 *
+	 * @param int      $post_id Beitrags-ID.
+	 * @param int[]    $animals Tier-IDs.
+	 * @param string   $date    Datum (Y-m-d).
+	 * @param string[] $foods   Futter-Schlüssel.
+	 * @param string   $amount  Mengenangabe.
+	 * @param string[] $supps   Supplement-Schlüssel.
+	 * @param string   $notes   Notizen.
+	 */
+	private static function store_log_meta( $post_id, $animals, $date, $foods, $amount, $supps, $notes ) {
+		// Tiere als Mehrfach-Meta (eine Zeile pro Tier – ermöglicht exakte Abfragen).
+		delete_post_meta( $post_id, '_rm_feed_animal' );
+		foreach ( array_unique( array_filter( $animals ) ) as $animal_id ) {
+			add_post_meta( $post_id, '_rm_feed_animal', $animal_id );
+		}
+
 		update_post_meta( $post_id, '_rm_feed_date', $date );
 
-		$food = isset( $_POST['rm_feed_food'] ) ? sanitize_key( $_POST['rm_feed_food'] ) : '';
-		if ( ! array_key_exists( $food, self::food_types() ) ) {
-			$food = 'sonstiges';
-		}
-		update_post_meta( $post_id, '_rm_feed_food', $food );
+		$foods = array_values( array_intersect( $foods, array_keys( self::food_types() ) ) );
+		update_post_meta( $post_id, '_rm_feed_foods', $foods );
+		delete_post_meta( $post_id, '_rm_feed_food' ); // Altes Einzelfeld ablösen.
 
-		$amount = isset( $_POST['rm_feed_amount'] ) ? sanitize_text_field( wp_unslash( $_POST['rm_feed_amount'] ) ) : '';
 		update_post_meta( $post_id, '_rm_feed_amount', $amount );
 
-		$valid_supplements = array_keys( self::supplements() );
-		$supplements       = isset( $_POST['rm_feed_supplements'] ) ? array_map( 'sanitize_key', wp_unslash( (array) $_POST['rm_feed_supplements'] ) ) : array();
-		update_post_meta( $post_id, '_rm_feed_supplements', array_values( array_intersect( $supplements, $valid_supplements ) ) );
+		$supps = array_values( array_intersect( $supps, array_keys( self::supplements() ) ) );
+		update_post_meta( $post_id, '_rm_feed_supplements', $supps );
 
-		$notes = isset( $_POST['rm_feed_notes'] ) ? sanitize_textarea_field( wp_unslash( $_POST['rm_feed_notes'] ) ) : '';
 		update_post_meta( $post_id, '_rm_feed_notes', $notes );
 	}
+
+	/**
+	 * Erzeugt einen sprechenden Titel, falls keiner vergeben wurde.
+	 *
+	 * @param int    $post_id Beitrags-ID.
+	 * @param string $title   Aktueller Titel.
+	 * @param string $date    Datum.
+	 * @param int[]  $animals Tier-IDs.
+	 */
+	private static function maybe_autotitle( $post_id, $title, $date, $animals ) {
+		static $updating = false;
+
+		if ( $updating || '' !== trim( $title ) ) {
+			return;
+		}
+
+		$new_title = self::build_title( $date, $animals );
+
+		$updating = true;
+		wp_update_post(
+			array(
+				'ID'         => $post_id,
+				'post_title' => $new_title,
+			)
+		);
+		$updating = false;
+	}
+
+	/**
+	 * Sprechender Titel für einen Fütterungs-Eintrag.
+	 *
+	 * @param string $date    Datum (Y-m-d).
+	 * @param int[]  $animals Tier-IDs.
+	 * @return string
+	 */
+	private static function build_title( $date, $animals ) {
+		$date_label = $date && strtotime( $date ) ? date_i18n( get_option( 'date_format' ), strtotime( $date ) ) : date_i18n( get_option( 'date_format' ) );
+
+		$animals    = array_values( array_filter( $animals ) );
+		$all_count  = count( RM_Post_Types::get_animals() );
+		$count      = count( $animals );
+
+		if ( $count && $all_count && $count >= $all_count ) {
+			$who = __( 'Alle Tiere', 'reptilien-manager' );
+		} elseif ( $count > 0 && $count <= 2 ) {
+			$names = array();
+			foreach ( $animals as $id ) {
+				$names[] = get_the_title( $id );
+			}
+			$who = implode( ', ', $names );
+		} elseif ( $count > 2 ) {
+			/* translators: %d: Anzahl Tiere */
+			$who = sprintf( __( '%d Tiere', 'reptilien-manager' ), $count );
+		} else {
+			$who = '';
+		}
+
+		/* translators: %s: Datum */
+		$title = sprintf( __( 'Fütterung %s', 'reptilien-manager' ), $date_label );
+		if ( $who ) {
+			$title .= ' – ' . $who;
+		}
+
+		return $title;
+	}
+
+	/**
+	 * Schnell-Eintrag von der Futterplan-Seite verarbeiten.
+	 */
+	public static function handle_quick_feeding() {
+		if ( ! isset( $_POST['rm_quick_feeding_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_POST['rm_quick_feeding_nonce'] ), 'rm_quick_feeding' ) ) {
+			wp_die( esc_html__( 'Sicherheitsprüfung fehlgeschlagen.', 'reptilien-manager' ) );
+		}
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_die( esc_html__( 'Keine Berechtigung.', 'reptilien-manager' ) );
+		}
+
+		$animals = isset( $_POST['rm_feed_animals'] ) ? array_map( 'absint', wp_unslash( (array) $_POST['rm_feed_animals'] ) ) : array();
+		$date    = isset( $_POST['rm_feed_date'] ) ? sanitize_text_field( wp_unslash( $_POST['rm_feed_date'] ) ) : current_time( 'Y-m-d' );
+		$foods   = isset( $_POST['rm_feed_foods'] ) ? array_map( 'sanitize_key', wp_unslash( (array) $_POST['rm_feed_foods'] ) ) : array();
+		$amount  = isset( $_POST['rm_feed_amount'] ) ? sanitize_text_field( wp_unslash( $_POST['rm_feed_amount'] ) ) : '';
+		$supps   = isset( $_POST['rm_feed_supplements'] ) ? array_map( 'sanitize_key', wp_unslash( (array) $_POST['rm_feed_supplements'] ) ) : array();
+		$notes   = isset( $_POST['rm_feed_notes'] ) ? sanitize_textarea_field( wp_unslash( $_POST['rm_feed_notes'] ) ) : '';
+
+		$redirect = admin_url( 'edit.php?post_type=rm_animal&page=rm-feeding-plan' );
+
+		if ( ! $animals || ! $foods ) {
+			wp_safe_redirect( add_query_arg( 'rm_msg', 'missing', $redirect ) );
+			exit;
+		}
+
+		$post_id = wp_insert_post(
+			array(
+				'post_type'   => 'rm_feeding_log',
+				'post_status' => 'publish',
+				'post_title'  => self::build_title( $date, $animals ),
+			)
+		);
+
+		if ( is_wp_error( $post_id ) || ! $post_id ) {
+			wp_safe_redirect( add_query_arg( 'rm_msg', 'error', $redirect ) );
+			exit;
+		}
+
+		self::store_log_meta( $post_id, $animals, $date, $foods, $amount, $supps, $notes );
+
+		wp_safe_redirect( add_query_arg( 'rm_msg', 'saved', $redirect ) );
+		exit;
+	}
+
+	/* ---------------------------------------------------------------------
+	 * Admin-Spalten
+	 * ------------------------------------------------------------------ */
 
 	public static function admin_columns( $columns ) {
 		$new = array();
 		foreach ( $columns as $key => $label ) {
 			$new[ $key ] = $label;
 			if ( 'title' === $key ) {
-				$new['rm_feed_animal'] = __( 'Tier', 'reptilien-manager' );
+				$new['rm_feed_animal'] = __( 'Tiere', 'reptilien-manager' );
 				$new['rm_feed_date']   = __( 'Datum', 'reptilien-manager' );
 				$new['rm_feed_food']   = __( 'Futter', 'reptilien-manager' );
 				$new['rm_feed_supps']  = __( 'Supplemente', 'reptilien-manager' );
@@ -259,17 +677,19 @@ class RM_Feeding {
 	public static function admin_column_content( $column, $post_id ) {
 		switch ( $column ) {
 			case 'rm_feed_animal':
-				$animal = (int) get_post_meta( $post_id, '_rm_feed_animal', true );
-				echo esc_html( $animal ? get_the_title( $animal ) : '—' );
+				$names = array();
+				foreach ( self::animals_for_log( $post_id ) as $animal_id ) {
+					$names[] = get_the_title( $animal_id );
+				}
+				echo esc_html( $names ? implode( ', ', $names ) : '—' );
 				break;
 			case 'rm_feed_date':
 				$date = get_post_meta( $post_id, '_rm_feed_date', true );
 				echo esc_html( $date && strtotime( $date ) ? date_i18n( get_option( 'date_format' ), strtotime( $date ) ) : '—' );
 				break;
 			case 'rm_feed_food':
-				$foods = self::food_types();
-				$food  = get_post_meta( $post_id, '_rm_feed_food', true );
-				echo esc_html( isset( $foods[ $food ] ) ? $foods[ $food ] : '—' );
+				$label = self::foods_label( $post_id );
+				echo esc_html( $label ? $label : '—' );
 				break;
 			case 'rm_feed_supps':
 				$labels      = self::supplements();

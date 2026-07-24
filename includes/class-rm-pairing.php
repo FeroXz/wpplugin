@@ -364,6 +364,35 @@ class RM_Pairing {
 		update_post_meta( $post_id, '_rm_clutches', $clutches );
 
 		self::auto_create_offspring( $post_id, $clutches );
+		self::maybe_autotitle( $post_id, $post->post_title );
+	}
+
+	/**
+	 * Erzeugt einen sprechenden Titel ("Vater × Mutter"), falls keiner vergeben wurde.
+	 *
+	 * @param int    $post_id Beitrags-ID.
+	 * @param string $title   Aktueller Titel.
+	 */
+	private static function maybe_autotitle( $post_id, $title ) {
+		static $updating = false;
+
+		if ( $updating || '' !== trim( $title ) ) {
+			return;
+		}
+
+		$label = self::pairing_label( $post_id );
+		if ( '' === $label ) {
+			return;
+		}
+
+		$updating = true;
+		wp_update_post(
+			array(
+				'ID'         => $post_id,
+				'post_title' => $label,
+			)
+		);
+		$updating = false;
 	}
 
 	/**

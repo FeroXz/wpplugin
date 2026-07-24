@@ -236,6 +236,118 @@
 	color: #fff;
 }
 
+/* Auswahl-Raster (Tiere, Futterarten, Supplemente) */
+.rm-choice-group {
+	max-width: 760px;
+}
+
+.rm-choice-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	gap: 4px 12px;
+	padding: 10px 12px;
+	background: #fff;
+	border: 1px solid var(--rm-admin-border);
+	border-radius: var(--rm-admin-radius-sm);
+}
+
+.rm-choice-grid--narrow {
+	grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+}
+
+.rm-choice {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 3px 4px;
+	border-radius: 6px;
+	cursor: pointer;
+}
+
+.rm-choice:hover {
+	background: var(--rm-admin-surface-2);
+}
+
+.rm-choice--all {
+	margin-bottom: 6px;
+	color: var(--rm-admin-primary-dark);
+}
+
+/* Schnell-Eintrag */
+.rm-quick-feeding {
+	max-width: 900px;
+	background: #fff;
+	border: 1px solid var(--rm-admin-border);
+	border-radius: var(--rm-admin-radius);
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+	padding: 16px 20px 20px;
+	margin: 16px 0 28px;
+}
+
+.rm-quick-feeding h2 {
+	margin-top: 0;
+}
+
+.rm-quick-grid {
+	display: flex;
+	gap: 24px;
+	flex-wrap: wrap;
+	margin-bottom: 8px;
+}
+
+.rm-quick-feeding p > strong {
+	color: var(--rm-admin-ink);
+}
+
+/* Auswertungs-Chips */
+.rm-analysis {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.rm-status {
+	display: inline-block;
+	padding: 3px 10px;
+	border-radius: var(--rm-admin-radius-pill);
+	font-size: 11.5px;
+	font-weight: 600;
+	white-space: nowrap;
+	width: fit-content;
+}
+
+.rm-status--ok {
+	background: #dcfce7;
+	color: #15803d;
+}
+
+.rm-status--low {
+	background: #fef3c7;
+	color: #b45309;
+}
+
+.rm-status--high {
+	background: #fee2e2;
+	color: #b91c1c;
+}
+
+.rm-status--none {
+	background: var(--rm-admin-surface-2);
+	color: var(--rm-admin-muted);
+	white-space: normal;
+}
+
+/* Empfehlungs-Zelle im Futterplan */
+.rm-plan-cell span {
+	display: block;
+	margin-bottom: 4px;
+	font-size: 12px;
+}
+
+.rm-table--wide {
+	max-width: none;
+}
+
 /* Galerie-Buttons */
 .rm-gallery-buttons {
 	display: flex;

@@ -107,6 +107,21 @@ jQuery( function ( $ ) {
 		this.value = '';
 	} );
 
+	// --- Fütterung: „Alle Tiere“-Umschalter --------------------------------
+	$( document ).on( 'change', '.rm-check-all', function () {
+		$( this )
+			.closest( '.rm-choice-group' )
+			.find( '.rm-choice-cb' )
+			.prop( 'checked', this.checked );
+	} );
+
+	$( document ).on( 'change', '.rm-choice-cb', function () {
+		var group = $( this ).closest( '.rm-choice-group' );
+		var all = group.find( '.rm-choice-cb' ).length;
+		var checked = group.find( '.rm-choice-cb:checked' ).length;
+		group.find( '.rm-check-all' ).prop( 'checked', all > 0 && all === checked );
+	} );
+
 	// --- Gelege (Verpaarung) -----------------------------------------------
 	function rmEstimatedHatch( layDate ) {
 		if ( ! layDate ) {

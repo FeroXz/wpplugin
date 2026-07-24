@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.3.0
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -39,8 +39,10 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien – mit Fokus auf Ba
 **Futterplanung**
 
 * Altersgerechter Bartagamen-Futterplan (Jungtier, Heranwachsend, Subadult, Adult) mit Empfehlungen für Insekten, Grünfutter und Supplemente (Calcium, Calcium+D3, Vitamine)
-* Fütterungsprotokoll: Tier, Datum, Futterart, Menge, Supplemente und Notizen
-* Übersichtsseite mit Empfehlung und letzter Fütterung pro Tier
+* Schnell-Eintrag direkt auf der Futterplan-Seite: mehrere Tiere (oder „Alle Tiere“) und mehrere Futterarten gleichzeitig in einem Eintrag, plus Menge, Supplemente und Notizen
+* Fütterungs-Auswertung: vergleicht die protokollierten Fütterungen der letzten 14 Tage pro Tier mit dem altersgerechten Optimum (Insekten-, Grünfutter- und Calcium-Frequenz pro Woche) und zeigt farbige Status-Chips (optimal / zu wenig / zu viel)
+* Fütterungsprotokoll mit automatisch erzeugten Titeln („Fütterung 24.07.2026 – Alle Tiere“)
+* Übersichtsseite mit Empfehlung, Auswertung und letzter Fütterung pro Tier
 
 **Frontend**
 
@@ -65,6 +67,12 @@ Der Fokus liegt auf Bartagamen (Genetik-Rechner und Futterplan). Über die Arten
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.4.0 =
+* Neu: Schnell-Eintrag für Fütterungen direkt auf der Futterplan-Seite – mehrere Tiere (inkl. „Alle Tiere“-Schalter) und mehrere Futterarten in einem Eintrag.
+* Neu: Fütterungs-Auswertung pro Tier – Ist-Frequenz der letzten 14 Tage (Insekten, Grünfutter, Calcium) im Vergleich zum altersgerechten Optimum mit Status-Chips (optimal/zu wenig/zu viel).
+* Verbessert: Fütterungs-Eintrag im Editor nutzt jetzt Checkbox-Raster für Tiere, Futterarten und Supplemente statt Einzel-Dropdowns; bestehende Einträge bleiben kompatibel.
+* Verbessert: Automatische Titel für Fütterungen und Verpaarungen (Titelfeld kann leer bleiben); neue Tiere erhalten automatisch die Standard-Art Bartagame, wenn keine gewählt wurde.
 
 = 1.3.0 =
 * Design an das Theme „Wissenswerk“ angeglichen (Indigo/Cyan-Verlauf, Karten mit Hover-Effekt, Pill-Chips, weiche Radien und Schatten).

@@ -323,6 +323,15 @@ class RM_Animal_Meta {
 		// Galerie.
 		$gallery = isset( $_POST['rm_gallery_ids'] ) ? array_map( 'absint', wp_unslash( (array) $_POST['rm_gallery_ids'] ) ) : array();
 		update_post_meta( $post_id, '_rm_gallery', array_values( array_filter( array_unique( $gallery ) ) ) );
+
+		// Standard-Art setzen, wenn keine gewählt wurde (weniger Pflichtangaben).
+		$terms = wp_get_post_terms( $post_id, 'rm_species', array( 'fields' => 'ids' ) );
+		if ( ! is_wp_error( $terms ) && empty( $terms ) ) {
+			$default = term_exists( 'Bartagame (Pogona vitticeps)', 'rm_species' );
+			if ( $default ) {
+				wp_set_object_terms( $post_id, (int) $default['term_id'], 'rm_species' );
+			}
+		}
 	}
 
 	public static function admin_columns( $columns ) {
