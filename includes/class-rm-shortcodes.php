@@ -54,11 +54,12 @@ class RM_Shortcodes {
 
 		$atts = shortcode_atts(
 			array(
-				'sex'     => '',
-				'species' => '',
-				'morph'   => '',
-				'sort'    => 'title',
-				'filter'  => 'yes',
+				'sex'      => '',
+				'species'  => '',
+				'morph'    => '',
+				'sort'     => 'title',
+				'filter'   => 'yes',
+				'per_page' => 24,
 			),
 			$atts,
 			'reptilien'
@@ -76,6 +77,18 @@ class RM_Shortcodes {
 		if ( ! $animals ) {
 			echo '<p class="rm-notice">' . esc_html__( 'Keine Tiere gefunden, die den Filtern entsprechen.', 'reptilien-manager' ) . '</p>';
 			return ob_get_clean();
+		}
+
+		// Pagination (per_page="0" zeigt alle).
+		$per_page = max( 0, (int) $atts['per_page'] );
+		$total    = count( $animals );
+		$page     = 1;
+		$pages    = 1;
+		if ( $per_page > 0 && $total > $per_page ) {
+			$pages = (int) ceil( $total / $per_page );
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reine Navigation.
+			$page  = isset( $_GET['rm_page'] ) ? max( 1, min( $pages, absint( $_GET['rm_page'] ) ) ) : 1;
+			$animals = array_slice( $animals, ( $page - 1 ) * $per_page, $per_page );
 		}
 
 		echo '<div class="rm-animal-grid">';
@@ -116,7 +129,43 @@ class RM_Shortcodes {
 			<?php
 		}
 		echo '</div>';
+
+		self::render_pagination( $page, $pages );
+
 		return ob_get_clean();
+	}
+
+	/**
+	 * Seitennummerierung rendern (behält bestehende Query-Parameter bei).
+	 *
+	 * @param int $page  Aktuelle Seite.
+	 * @param int $pages Gesamtzahl Seiten.
+	 */
+	private static function render_pagination( $page, $pages ) {
+		if ( $pages < 2 ) {
+			return;
+		}
+
+		$link = static function ( $p ) {
+			return esc_url( add_query_arg( 'rm_page', $p ) );
+		};
+		?>
+		<nav class="rm-pagination" aria-label="<?php esc_attr_e( 'Seitennummerierung', 'reptilien-manager' ); ?>">
+			<?php if ( $page > 1 ) : ?>
+				<a class="rm-page-link" href="<?php echo $link( $page - 1 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- bereits via esc_url. ?>">&larr;</a>
+			<?php endif; ?>
+			<?php for ( $i = 1; $i <= $pages; $i++ ) : ?>
+				<?php if ( $i === $page ) : ?>
+					<span class="rm-page-link rm-page-link--current" aria-current="page"><?php echo esc_html( $i ); ?></span>
+				<?php else : ?>
+					<a class="rm-page-link" href="<?php echo $link( $i ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- bereits via esc_url. ?>"><?php echo esc_html( $i ); ?></a>
+				<?php endif; ?>
+			<?php endfor; ?>
+			<?php if ( $page < $pages ) : ?>
+				<a class="rm-page-link" href="<?php echo $link( $page + 1 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- bereits via esc_url. ?>">&rarr;</a>
+			<?php endif; ?>
+		</nav>
+		<?php
 	}
 
 	/**

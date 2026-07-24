@@ -525,3 +525,41 @@
 	background: var(--rm-surface-alt);
 	color: var(--rm-ink);
 }
+
+/* ============================================================
+   Seitennummerierung ([reptilien])
+   ============================================================ */
+.rm-pagination {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	justify-content: center;
+	margin: 1.5rem 0 0;
+}
+
+.rm-page-link {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 40px;
+	height: 40px;
+	padding: 0 10px;
+	border: 1px solid var(--rm-border);
+	border-radius: var(--rm-radius-sm);
+	background: var(--rm-surface);
+	color: var(--rm-ink);
+	text-decoration: none;
+	font-weight: 600;
+	transition: background var(--rm-transition), border-color var(--rm-transition), color var(--rm-transition);
+}
+
+.rm-page-link:hover {
+	border-color: var(--rm-primary);
+	color: var(--rm-primary);
+}
+
+.rm-page-link--current {
+	background: var(--rm-gradient-brand);
+	color: #fff;
+	border-color: transparent;
+}

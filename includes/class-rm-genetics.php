@@ -350,6 +350,17 @@ class RM_Genetics {
 		$sire_states = self::get_animal_genes( $sire_id );
 		$dam_states  = self::get_animal_genes( $dam_id );
 
+		// Ergebnis-Cache: Schlüssel enthält Art und Genzustände, invalidiert
+		// sich daher automatisch, sobald sich Genanlagen ändern.
+		$cache_key = '';
+		if ( function_exists( 'wp_cache_get' ) && function_exists( 'wp_json_encode' ) ) {
+			$cache_key = 'cross_' . md5( wp_json_encode( array( $species, $sire_states, $dam_states ) ) );
+			$cached    = wp_cache_get( $cache_key, 'reptilien_manager' );
+			if ( false !== $cached ) {
+				return $cached;
+			}
+		}
+
 		$per_gene      = array();
 		$active_genes  = array();
 
@@ -375,10 +386,16 @@ class RM_Genetics {
 			);
 		}
 
-		return array(
+		$result = array(
 			'per_gene' => $per_gene,
 			'combined' => self::combine_outcomes( $genes, $active_genes, $species ),
 		);
+
+		if ( $cache_key ) {
+			wp_cache_set( $cache_key, $result, 'reptilien_manager', HOUR_IN_SECONDS );
+		}
+
+		return $result;
 	}
 
 	/**

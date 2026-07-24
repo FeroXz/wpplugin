@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.11.0
+Stable tag: 1.12.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -57,7 +57,7 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
 
 **Frontend**
 
-* Shortcode `[reptilien]` – filterbare Kartenübersicht aller Tiere mit Filterleiste (Geschlecht, Art, Morph, Alter min/max, Sortierung nach Name/Alter/Gewicht); Attribute `sex`, `species`, `morph`, `sort`, `filter="no"` als Vorbelegung
+* Shortcode `[reptilien]` – filterbare Kartenübersicht aller Tiere mit Filterleiste (Geschlecht, Art, Morph, Alter min/max, Sortierung nach Name/Alter/Gewicht) und Seitennummerierung (`per_page`, Standard 24, `0` = alle); Attribute `sex`, `species`, `morph`, `sort`, `filter="no"` als Vorbelegung
 * Shortcode `[reptil id="123"]` – Detailprofil eines Tieres im Steckbrief-Layout mit Galerie
 * Shortcode `[reptilien-dashboard]` – Bestands-Dashboard mit Kennzahlen (Gesamtzahl, Geschlechter-Split, Ø Gewicht, Ø Schlupfquote) und Chart.js-Diagrammen (Geschlechter-, Alters- und Morph-Verteilung)
 * Shortcode `[reptilien-stammbaum id="123" generationen="3"]` – Ahnentafel eines Tieres mit verlinkten Vorfahren
@@ -84,6 +84,13 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
 * Öffentlich/Privat-Schalter pro Tier: nur öffentliche Tiere erscheinen in den Frontend-Shortcodes (Liste, Profil, Dashboard)
 * DSGVO: automatischer Textbaustein für die Datenschutzerklärung (welche Daten gespeichert werden)
 
+**Performance & SEO**
+
+* Seitennummerierung im Shortcode `[reptilien]` für große Bestände
+* Objekt-Cache für den Genetik-Rechner (Kreuzungsergebnisse), automatisch invalidiert bei Änderung der Genanlagen
+* Open-Graph- und Twitter-Card-Meta sowie JSON-LD (schema.org) für öffentliche Tierprofile
+* Als privat markierte Tiere liefern im Frontend einen 404 (Eigentümer/Redakteure sehen weiterhin eine Vorschau)
+
 == Installation ==
 
 1. Plugin-Ordner in `wp-content/plugins/` hochladen oder als ZIP installieren.
@@ -101,6 +108,12 @@ Vollständige artspezifische Profile (Genetik-Rechner und Futterplan) gibt es f�
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.12.0 =
+* Neu (Performance): Seitennummerierung im Shortcode `[reptilien]` (Attribut `per_page`, Standard 24).
+* Neu (Performance): Objekt-Cache für Kreuzungsergebnisse des Genetik-Rechners; Schlüssel enthält die Genzustände und invalidiert sich automatisch.
+* Neu (SEO): Open-Graph-/Twitter-Card-Meta und JSON-LD (schema.org) für öffentliche Tierprofile.
+* Neu (Sichtbarkeit): Einzelansicht privat markierter Tiere liefert im Frontend einen 404 (Eigentümer/Redakteure sehen weiterhin eine Vorschau).
 
 = 1.11.0 =
 * Neu: Rolle „Reptilien-Züchter“ – verwaltet nur eigene Tiere/Verpaarungen/Fütterungen. Die Inhaltstypen nutzen jetzt ownership-basierte Rechte (map_meta_cap), Backend-Listen und Plugin-Abfragen sind für beschränkte Nutzer autoren-gefiltert.
