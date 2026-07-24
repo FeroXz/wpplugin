@@ -50,6 +50,105 @@ jQuery( function ( $ ) {
 		$( this ).closest( 'li' ).remove();
 	} );
 
+	// --- Direkt-Upload -----------------------------------------------------
+	function rmAppendGalleryItem( id, thumbUrl ) {
+		$( '#rm-gallery .rm-gallery-list' ).append(
+			$( '<li/>' )
+				.append( $( '<input/>', { type: 'hidden', name: 'rm_gallery_ids[]', value: id } ) )
+				.append( $( '<img/>', { src: thumbUrl, alt: '' } ) )
+				.append( $( '<button/>', { type: 'button', 'class': 'button-link rm-gallery-remove', html: '&times;' } ) )
+		);
+	}
+
+	$( document ).on( 'click', '.rm-upload-add', function ( e ) {
+		e.preventDefault();
+		$( '#rm-upload-input' ).trigger( 'click' );
+	} );
+
+	$( document ).on( 'change', '#rm-upload-input', function () {
+		var files = this.files;
+		if ( ! files || ! files.length ) {
+			return;
+		}
+
+		var $spinner = $( '.rm-upload-spinner' );
+		var pending = files.length;
+		$spinner.addClass( 'is-active' );
+
+		Array.prototype.forEach.call( files, function ( file ) {
+			var formData = new FormData();
+			formData.append( 'action', 'rm_upload_photo' );
+			formData.append( 'nonce', $( '#rm_upload_nonce' ).val() );
+			formData.append( 'post_id', $( '#post_ID' ).val() );
+			formData.append( 'rm_photo', file );
+
+			$.ajax( {
+				url: window.ajaxurl,
+				method: 'POST',
+				data: formData,
+				processData: false,
+				contentType: false
+			} ).done( function ( response ) {
+				if ( response && response.success && response.data ) {
+					rmAppendGalleryItem( response.data.id, response.data.thumb );
+				} else {
+					window.alert( ( response && response.data && response.data.message ) || rmAdmin.uploadError );
+				}
+			} ).fail( function () {
+				window.alert( rmAdmin.uploadError );
+			} ).always( function () {
+				pending -= 1;
+				if ( pending < 1 ) {
+					$spinner.removeClass( 'is-active' );
+				}
+			} );
+		} );
+
+		this.value = '';
+	} );
+
+	// --- Gelege (Verpaarung) -----------------------------------------------
+	function rmEstimatedHatch( layDate ) {
+		if ( ! layDate ) {
+			return '';
+		}
+		var d = new Date( layDate + 'T12:00:00' );
+		if ( isNaN( d.getTime() ) ) {
+			return '';
+		}
+		d.setDate( d.getDate() + 60 );
+		return d.toLocaleDateString();
+	}
+
+	function rmRenumberClutches() {
+		$( '#rm-clutch-table tbody tr' ).each( function ( i ) {
+			$( this ).find( '.rm-clutch-no' ).text( i + 1 );
+		} );
+	}
+
+	$( '#rm-clutch-add' ).on( 'click', function () {
+		var row = $( '<tr/>' )
+			.append( $( '<td/>', { 'class': 'rm-clutch-no' } ) )
+			.append( $( '<td/>' ).append( $( '<input/>', { type: 'date', name: 'rm_clutch_lay[]' } ) ) )
+			.append( $( '<td/>' ).append( $( '<input/>', { type: 'number', name: 'rm_clutch_eggs[]', min: '0' } ) ) )
+			.append( $( '<td/>' ).append( $( '<input/>', { type: 'number', name: 'rm_clutch_hatched[]', min: '0' } ) ) )
+			.append( $( '<td/>', { 'class': 'rm-clutch-est', text: '—' } ) )
+			.append( $( '<td/>' ).append( $( '<button/>', { type: 'button', 'class': 'button rm-clutch-remove', text: 'Entfernen' } ) ) );
+
+		$( '#rm-clutch-table tbody' ).append( row );
+		rmRenumberClutches();
+	} );
+
+	$( document ).on( 'click', '.rm-clutch-remove', function () {
+		$( this ).closest( 'tr' ).remove();
+		rmRenumberClutches();
+	} );
+
+	$( document ).on( 'change', 'input[name="rm_clutch_lay[]"]', function () {
+		var est = rmEstimatedHatch( $( this ).val() );
+		$( this ).closest( 'tr' ).find( '.rm-clutch-est' ).text( est || '—' );
+	} );
+
 	// --- Gewichtsverlauf ---------------------------------------------------
 	$( '#rm-weight-add' ).on( 'click', function () {
 		var row = $( '<tr/>' )
@@ -105,6 +204,8 @@ jQuery( function ( $ ) {
 			rm_identifier: $( '#rm_identifier' ).val() || '',
 			rm_length: $( '#rm_length' ).val() || '',
 			rm_food_notes: $( '#rm_food_notes' ).val() || '',
+			rm_parent_pairing: $( '#rm_parent_pairing' ).val() || '',
+			rm_clutch: $( '#rm_clutch' ).val() || '',
 			rm_genes: {},
 			rm_weight_date: [],
 			rm_weight_grams: [],

@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,11 +22,17 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien – mit Fokus auf Ba
 * Freitext für Haltung, Gesundheit und Besonderheiten
 * Arten-Taxonomie (Standard: Bartagame)
 * Beitrags-Vorlagen: Steckbrief (Tabelle), Ausführliches Porträt, Zuchttier-Präsentation und Kurzprofil – der Beitragstext wird per Klick automatisch aus den eingetragenen Daten erzeugt, inklusive Profilfoto und Galerie (Gutenberg-Blöcke, Classic-Editor-kompatibel)
+* Die Vorlagen zeigen automatisch Verpaarungen und Nachzuchten des Tieres – mit Verlinkung zum Partner und zu den Nachzucht-Tieren sowie Gelege-Übersicht (Eier, geschlüpft, erwarteter Schlupf)
+* Ansprechendes Layout: Banner-Karte mit Name und Morph, Foto neben Datentabelle, gestreifte Tabellen, Galerie-Raster und Abschnitts-Icons
+* Direkter Bild-Upload in der Fotogalerie des Tieres (zusätzlich zur Mediathek-Auswahl)
 
 **Genetik & Verpaarung**
 
 * Genanlagen pro Tier: Hypo, Translucent, Zero, Witblits, Genetic Stripe (rezessiv), Leatherback/Silkback (unvollständig dominant), Dunner (dominant)
-* Verpaarungen planen: Vater und Mutter auswählen, Verpaarungsdatum, Eiablage, Gelegegröße, Inkubationstemperatur, erwarteter Schlupftermin
+* Verpaarungen planen: Vater und Mutter auswählen, Verpaarungsdatum und Inkubationstemperatur festhalten
+* Gelege-Verwaltung pro Verpaarung: mehrere Gelege mit Ablagedatum, Anzahl gelegter Eier, tatsächlich geschlüpfter Anzahl und automatisch berechnetem ungefähren Schlupfdatum (Ablage + 60 Tage)
+* Nachzuchten werden beim Speichern automatisch als Tier-Entwürfe angelegt (pro Gelege entsprechend der geschlüpften Anzahl) – verknüpft mit der Verpaarung, inkl. Schlupfdatum und Art
+* Abstammung am Tier: eigene Nachzuchten können ihrer Eltern-Verpaarung (und dem Gelege) zugeordnet werden
 * Genetik-Vorschau der Jungtiere nach Mendelscher Vererbung (Punnett): kombinierte Ergebnisse mit Wahrscheinlichkeiten sowie Aufschlüsselung pro Gen, inkl. Kombi-Morph Wero (Zero × Witblits)
 * Eigenständiger Genetik-Rechner zum Durchspielen beliebiger Paarungen
 
@@ -58,6 +64,14 @@ Der Fokus liegt auf Bartagamen (Genetik-Rechner und Futterplan). Über die Arten
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.2.0 =
+* Neu: Gelege-Verwaltung an Verpaarungen – mehrere Gelege mit Ablagedatum, Eizahl, geschlüpfter Anzahl und automatisch berechnetem Schlupftermin.
+* Neu: Nachzuchten werden beim Speichern einer Verpaarung automatisch als Tier-Entwürfe angelegt und mit der Verpaarung verknüpft.
+* Neu: Abstammungs-Feld am Tier (Eltern-Verpaarung + Gelege-Nummer) für eigene Nachzuchten.
+* Neu: Direkter Bild-Upload in der Fotogalerie des Tieres.
+* Neu: Beitrags-Vorlagen zeigen Verpaarungen, Gelege und Nachzuchten mit automatischer Verlinkung zu Partner und Jungtieren.
+* Verbessert: Vorlagen visuell überarbeitet (Banner-Karte, Spalten-Layout, gestreifte Tabellen, Galerie-Raster, Abschnitts-Icons).
 
 = 1.1.0 =
 * Neu: Beitrags-Vorlagen beim Eintragen eines Tieres. Vier Layouts (Steckbrief, Ausführliches Porträt, Zuchttier-Präsentation, Kurzprofil) füllen den Textbereich automatisch mit den aktuell eingetragenen Tierdaten, dem Profilfoto und der Fotogalerie.

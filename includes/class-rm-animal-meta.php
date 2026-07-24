@@ -16,6 +16,7 @@ class RM_Animal_Meta {
 		add_action( 'save_post_rm_animal', array( __CLASS__, 'save' ), 10, 2 );
 		add_filter( 'manage_rm_animal_posts_columns', array( __CLASS__, 'admin_columns' ) );
 		add_action( 'manage_rm_animal_posts_custom_column', array( __CLASS__, 'admin_column_content' ), 10, 2 );
+		add_action( 'wp_ajax_rm_upload_photo', array( __CLASS__, 'ajax_upload_photo' ) );
 	}
 
 	public static function add_meta_boxes() {
@@ -84,6 +85,37 @@ class RM_Animal_Meta {
 			<tr>
 				<th><label for="rm_length"><?php esc_html_e( 'Gesamtlänge (cm)', 'reptilien-manager' ); ?></label></th>
 				<td><input type="number" step="0.1" min="0" name="rm_length" id="rm_length" value="<?php echo esc_attr( $length ); ?>" /></td>
+			</tr>
+			<tr>
+				<th><label for="rm_parent_pairing"><?php esc_html_e( 'Eltern-Verpaarung (eigene Nachzucht)', 'reptilien-manager' ); ?></label></th>
+				<td>
+					<?php
+					$parent_pairing = (int) get_post_meta( $post->ID, '_rm_parent_pairing', true );
+					$clutch_no      = (int) get_post_meta( $post->ID, '_rm_clutch', true );
+					$pairings       = get_posts(
+						array(
+							'post_type'      => 'rm_pairing',
+							'posts_per_page' => -1,
+							'post_status'    => array( 'publish', 'draft', 'private' ),
+							'orderby'        => 'date',
+							'order'          => 'DESC',
+						)
+					);
+					?>
+					<select name="rm_parent_pairing" id="rm_parent_pairing">
+						<option value=""><?php esc_html_e( '– keine (kein eigener Nachwuchs) –', 'reptilien-manager' ); ?></option>
+						<?php foreach ( $pairings as $pairing ) : ?>
+							<option value="<?php echo esc_attr( $pairing->ID ); ?>" <?php selected( $parent_pairing, $pairing->ID ); ?>>
+								<?php echo esc_html( RM_Pairing::pairing_label( $pairing->ID ) ); ?>
+							</option>
+						<?php endforeach; ?>
+					</select>
+					<label for="rm_clutch" style="margin-left:8px">
+						<?php esc_html_e( 'Gelege Nr.', 'reptilien-manager' ); ?>
+						<input type="number" min="0" style="width:70px" name="rm_clutch" id="rm_clutch" value="<?php echo esc_attr( $clutch_no ? $clutch_no : '' ); ?>" />
+					</label>
+					<p class="description"><?php esc_html_e( 'Bei eigener Nachzucht: die Verpaarung der Elterntiere auswählen. Das Tier erscheint dann automatisch als Nachzucht bei der Verpaarung und in den Beitrags-Vorlagen der Eltern.', 'reptilien-manager' ); ?></p>
+				</td>
 			</tr>
 			<tr>
 				<th><label for="rm_food_notes"><?php esc_html_e( 'Futter-Besonderheiten', 'reptilien-manager' ); ?></label></th>
@@ -170,9 +202,54 @@ class RM_Animal_Meta {
 					<?php endif; ?>
 				<?php endforeach; ?>
 			</ul>
-			<button type="button" class="button rm-gallery-add"><?php esc_html_e( 'Fotos hinzufügen', 'reptilien-manager' ); ?></button>
+			<input type="hidden" id="rm_upload_nonce" value="<?php echo esc_attr( wp_create_nonce( 'rm_upload_photo' ) ); ?>" />
+			<input type="file" id="rm-upload-input" accept="image/*" multiple style="display:none" />
+			<p class="rm-gallery-buttons">
+				<button type="button" class="button rm-upload-add"><?php esc_html_e( 'Bilder hochladen', 'reptilien-manager' ); ?></button>
+				<button type="button" class="button rm-gallery-add"><?php esc_html_e( 'Aus Mediathek wählen', 'reptilien-manager' ); ?></button>
+				<span class="spinner rm-upload-spinner"></span>
+			</p>
+			<p class="description"><?php esc_html_e( '„Bilder hochladen“ lädt Fotos direkt vom Gerät hoch und fügt sie der Galerie hinzu. Anschließend den Beitrag speichern.', 'reptilien-manager' ); ?></p>
 		</div>
 		<?php
+	}
+
+	/**
+	 * AJAX: Foto direkt hochladen und der Galerie zuordnen.
+	 */
+	public static function ajax_upload_photo() {
+		check_ajax_referer( 'rm_upload_photo', 'nonce' );
+
+		$post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+		if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) || ! current_user_can( 'upload_files' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Keine Berechtigung.', 'reptilien-manager' ) ), 403 );
+		}
+
+		if ( empty( $_FILES['rm_photo'] ) ) {
+			wp_send_json_error( array( 'message' => __( 'Keine Datei übermittelt.', 'reptilien-manager' ) ), 400 );
+		}
+
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/media.php';
+
+		$attachment_id = media_handle_upload( 'rm_photo', $post_id );
+
+		if ( is_wp_error( $attachment_id ) ) {
+			wp_send_json_error( array( 'message' => $attachment_id->get_error_message() ), 400 );
+		}
+
+		if ( ! wp_attachment_is_image( $attachment_id ) ) {
+			wp_delete_attachment( $attachment_id, true );
+			wp_send_json_error( array( 'message' => __( 'Nur Bilddateien sind erlaubt.', 'reptilien-manager' ) ), 400 );
+		}
+
+		wp_send_json_success(
+			array(
+				'id'    => $attachment_id,
+				'thumb' => wp_get_attachment_image_url( $attachment_id, 'thumbnail' ),
+			)
+		);
 	}
 
 	public static function save( $post_id, $post ) {
@@ -202,6 +279,12 @@ class RM_Animal_Meta {
 
 		$food_notes = isset( $_POST['rm_food_notes'] ) ? sanitize_textarea_field( wp_unslash( $_POST['rm_food_notes'] ) ) : '';
 		update_post_meta( $post_id, '_rm_food_notes', $food_notes );
+
+		// Abstammung (eigene Nachzucht).
+		$parent_pairing = isset( $_POST['rm_parent_pairing'] ) ? absint( $_POST['rm_parent_pairing'] ) : 0;
+		update_post_meta( $post_id, '_rm_parent_pairing', $parent_pairing ? $parent_pairing : '' );
+		$clutch_no = isset( $_POST['rm_clutch'] ) ? absint( $_POST['rm_clutch'] ) : 0;
+		update_post_meta( $post_id, '_rm_clutch', $clutch_no ? $clutch_no : '' );
 
 		// Genanlagen.
 		$genes = array();
