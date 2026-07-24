@@ -23,6 +23,25 @@ class RM_Feeding {
 		add_filter( 'manage_rm_feeding_log_posts_columns', array( __CLASS__, 'admin_columns' ) );
 		add_action( 'manage_rm_feeding_log_posts_custom_column', array( __CLASS__, 'admin_column_content' ), 10, 2 );
 		add_action( 'admin_post_rm_quick_feeding', array( __CLASS__, 'handle_quick_feeding' ) );
+		add_action( 'admin_post_rm_save_food_prices', array( __CLASS__, 'handle_save_food_prices' ) );
+	}
+
+	/**
+	 * Futterpreise über das Formular auf der Futterplan-Seite speichern.
+	 */
+	public static function handle_save_food_prices() {
+		if ( ! isset( $_POST['rm_food_prices_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_POST['rm_food_prices_nonce'] ), 'rm_food_prices' ) ) {
+			wp_die( esc_html__( 'Sicherheitsprüfung fehlgeschlagen.', 'reptilien-manager' ) );
+		}
+		if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'edit_others_posts' ) ) {
+			wp_die( esc_html__( 'Keine Berechtigung.', 'reptilien-manager' ) );
+		}
+
+		$raw = isset( $_POST['rm_price'] ) && is_array( $_POST['rm_price'] ) ? wp_unslash( $_POST['rm_price'] ) : array();
+		self::save_food_prices( array_map( 'sanitize_text_field', $raw ) );
+
+		wp_safe_redirect( add_query_arg( 'rm_msg', 'prices_saved', admin_url( 'edit.php?post_type=rm_animal&page=rm-feeding-plan' ) ) );
+		exit;
 	}
 
 	/* ---------------------------------------------------------------------
@@ -434,6 +453,287 @@ class RM_Feeding {
 		}
 
 		return $result;
+	}
+
+	/* ---------------------------------------------------------------------
+	 * Nährstoff-Bilanz (Supplemente inkl. Toxizitäts-Warnung)
+	 * ------------------------------------------------------------------ */
+
+	/**
+	 * Ziel-Frequenzen für Supplemente (pro Woche) je Alter und Art.
+	 *
+	 * Jede Kategorie ist [min, max, max_safe]:
+	 * - unter min  → zu wenig
+	 * - über max   → reichlich (bei Calcium unkritisch)
+	 * - über max_safe → Toxizitätsrisiko (v. a. D3, Vitamine – Hypervitaminose).
+	 *
+	 * @param int|null $months  Alter in Monaten.
+	 * @param string   $species Art-Schlüssel.
+	 * @return array|null
+	 */
+	public static function supplement_targets_for_age( $months, $species = 'pogona' ) {
+		if ( null === $months ) {
+			return null;
+		}
+
+		if ( 'iguana' === $species ) {
+			if ( $months < 12 ) {
+				return array(
+					'calcium'  => array( 5, 6, 7 ),
+					'd3'       => array( 1, 2, 3 ),
+					'vitamine' => array( 1, 1, 2 ),
+				);
+			}
+			if ( $months < 36 ) {
+				return array(
+					'calcium'  => array( 3, 4, 6 ),
+					'd3'       => array( 1, 1, 2 ),
+					'vitamine' => array( 1, 1, 2 ),
+				);
+			}
+			return array(
+				'calcium'  => array( 2, 3, 5 ),
+				'd3'       => array( 0, 1, 2 ),
+				'vitamine' => array( 1, 1, 2 ),
+			);
+		}
+
+		// Bartagame.
+		if ( $months < 6 ) {
+			return array(
+				'calcium'  => array( 5, 6, 7 ),
+				'd3'       => array( 1, 2, 3 ),
+				'vitamine' => array( 1, 1, 2 ),
+			);
+		}
+		if ( $months < 12 ) {
+			return array(
+				'calcium'  => array( 4, 5, 7 ),
+				'd3'       => array( 1, 1, 2 ),
+				'vitamine' => array( 1, 1, 2 ),
+			);
+		}
+		if ( $months < 18 ) {
+			return array(
+				'calcium'  => array( 3, 4, 6 ),
+				'd3'       => array( 0, 1, 2 ),
+				'vitamine' => array( 1, 1, 2 ),
+			);
+		}
+		return array(
+			'calcium'  => array( 2, 3, 5 ),
+			'd3'       => array( 0, 1, 2 ),
+			'vitamine' => array( 1, 1, 2 ),
+		);
+	}
+
+	/**
+	 * Nährstoff-Bilanz eines Tieres: Supplement-Frequenz der letzten Tage
+	 * gegen das art-/altersgerechte Ziel, inkl. Toxizitäts-Warnung.
+	 *
+	 * @param int $animal_id Beitrags-ID des Tieres.
+	 * @param int $days      Auswertungszeitraum in Tagen.
+	 * @return array { has_targets, has_data, days, categories }
+	 */
+	public static function nutrient_balance( $animal_id, $days = self::ANALYSIS_DAYS ) {
+		$birth   = get_post_meta( $animal_id, '_rm_birth', true );
+		$months  = $birth ? RM_Animal_Meta::age_in_months( $birth ) : null;
+		$species = RM_Species::key_for_animal( $animal_id );
+		$targets = self::supplement_targets_for_age( $months, $species );
+
+		$result = array(
+			'has_targets' => (bool) $targets,
+			'has_data'    => false,
+			'days'        => $days,
+			'categories'  => array(),
+		);
+
+		if ( ! $targets ) {
+			return $result;
+		}
+
+		$since = gmdate( 'Y-m-d', time() - $days * DAY_IN_SECONDS );
+
+		$logs = get_posts(
+			array(
+				'post_type'      => 'rm_feeding_log',
+				'posts_per_page' => -1,
+				'post_status'    => array( 'publish', 'draft', 'private' ),
+				'meta_query'     => array(
+					array(
+						'key'   => '_rm_feed_animal',
+						'value' => $animal_id,
+					),
+					array(
+						'key'     => '_rm_feed_date',
+						'value'   => $since,
+						'compare' => '>=',
+						'type'    => 'DATE',
+					),
+				),
+			)
+		);
+
+		$counts = array(
+			'calcium'  => 0,
+			'd3'       => 0,
+			'vitamine' => 0,
+		);
+
+		foreach ( $logs as $log ) {
+			$supps = get_post_meta( $log->ID, '_rm_feed_supplements', true );
+			if ( ! is_array( $supps ) ) {
+				continue;
+			}
+			if ( array_intersect( $supps, array( 'calcium', 'calcium_d3' ) ) ) {
+				$counts['calcium']++;
+			}
+			if ( in_array( 'calcium_d3', $supps, true ) ) {
+				$counts['d3']++;
+			}
+			if ( in_array( 'vitamine', $supps, true ) ) {
+				$counts['vitamine']++;
+			}
+		}
+
+		$result['has_data'] = ! empty( $logs );
+
+		$labels = array(
+			'calcium'  => __( 'Calcium', 'reptilien-manager' ),
+			'd3'       => __( 'Vitamin D3', 'reptilien-manager' ),
+			'vitamine' => __( 'Vitamine', 'reptilien-manager' ),
+		);
+
+		foreach ( $targets as $key => $range ) {
+			$rate     = $counts[ $key ] * 7 / $days;
+			$max_safe = isset( $range[2] ) ? $range[2] : $range[1];
+
+			if ( $rate > $max_safe && 'calcium' !== $key ) {
+				$status = 'toxic';
+			} elseif ( $rate > $range[1] ) {
+				$status = 'high';
+			} elseif ( $rate < $range[0] ) {
+				$status = 'low';
+			} else {
+				$status = 'ok';
+			}
+
+			$result['categories'][ $key ] = array(
+				'label'  => $labels[ $key ],
+				'rate'   => $rate,
+				'min'    => $range[0],
+				'max'    => $range[1],
+				'status' => $status,
+			);
+		}
+
+		return $result;
+	}
+
+	/* ---------------------------------------------------------------------
+	 * Kosten-Tracking
+	 * ------------------------------------------------------------------ */
+
+	/**
+	 * Hinterlegte Preise pro Futterart (Preis je Portion/Fütterung, in der
+	 * Shop-Währung von WordPress). Fehlende Werte = 0.
+	 *
+	 * @return array<string,float>
+	 */
+	public static function food_prices() {
+		$stored = get_option( 'rm_food_prices', array() );
+		$prices = array();
+		foreach ( array_keys( self::food_types() ) as $key ) {
+			$prices[ $key ] = isset( $stored[ $key ] ) ? (float) $stored[ $key ] : 0.0;
+		}
+		return $prices;
+	}
+
+	/**
+	 * Preise speichern (nur gültige Futter-Schlüssel, nicht-negativ).
+	 *
+	 * @param array $raw Roh-Eingabe Futter-Schlüssel => Preis.
+	 */
+	public static function save_food_prices( $raw ) {
+		$prices = array();
+		foreach ( array_keys( self::food_types() ) as $key ) {
+			if ( isset( $raw[ $key ] ) && '' !== $raw[ $key ] ) {
+				$prices[ $key ] = max( 0, (float) str_replace( ',', '.', $raw[ $key ] ) );
+			}
+		}
+		update_option( 'rm_food_prices', $prices );
+	}
+
+	/**
+	 * Kosten-Report über einen Zeitraum.
+	 *
+	 * Schätzung: pro Fütterungs-Eintrag wird je Futterart und je beteiligtem
+	 * Tier eine Portion angenommen (Preis × Anzahl Tiere).
+	 *
+	 * @param int $days Zeitraum in Tagen.
+	 * @return array {
+	 *     @type float $total       Gesamtkosten im Zeitraum.
+	 *     @type float $monthly     Auf 30 Tage hochgerechnet.
+	 *     @type array $per_food    Futter-Schlüssel => Kosten.
+	 *     @type array $per_animal  Tier-ID => Kosten.
+	 *     @type int   $days        Zeitraum.
+	 * }
+	 */
+	public static function cost_report( $days = 30 ) {
+		$prices = self::food_prices();
+		$since  = gmdate( 'Y-m-d', time() - $days * DAY_IN_SECONDS );
+
+		$logs = get_posts(
+			array(
+				'post_type'      => 'rm_feeding_log',
+				'posts_per_page' => -1,
+				'post_status'    => array( 'publish', 'draft', 'private' ),
+				'meta_query'     => array(
+					array(
+						'key'     => '_rm_feed_date',
+						'value'   => $since,
+						'compare' => '>=',
+						'type'    => 'DATE',
+					),
+				),
+			)
+		);
+
+		$total      = 0.0;
+		$per_food   = array();
+		$per_animal = array();
+
+		foreach ( $logs as $log ) {
+			$foods   = self::foods_for_log( $log->ID );
+			$animals = self::animals_for_log( $log->ID );
+			$count   = max( 1, count( $animals ) );
+
+			foreach ( $foods as $food ) {
+				$price = isset( $prices[ $food ] ) ? $prices[ $food ] : 0.0;
+				if ( $price <= 0 ) {
+					continue;
+				}
+				$line = $price * $count;
+				$total += $line;
+
+				$per_food[ $food ] = ( isset( $per_food[ $food ] ) ? $per_food[ $food ] : 0.0 ) + $line;
+
+				foreach ( $animals as $animal_id ) {
+					$per_animal[ $animal_id ] = ( isset( $per_animal[ $animal_id ] ) ? $per_animal[ $animal_id ] : 0.0 ) + $price;
+				}
+			}
+		}
+
+		arsort( $per_food );
+		arsort( $per_animal );
+
+		return array(
+			'total'      => $total,
+			'monthly'    => $days > 0 ? $total * 30 / $days : $total,
+			'per_food'   => $per_food,
+			'per_animal' => $per_animal,
+			'days'       => $days,
+		);
 	}
 
 	/* ---------------------------------------------------------------------

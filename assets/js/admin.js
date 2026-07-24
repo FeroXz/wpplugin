@@ -123,32 +123,29 @@ jQuery( function ( $ ) {
 	} );
 
 	// --- Gelege (Verpaarung) -----------------------------------------------
-	function rmEstimatedHatch( layDate ) {
-		if ( ! layDate ) {
-			return '';
-		}
-		var d = new Date( layDate + 'T12:00:00' );
-		if ( isNaN( d.getTime() ) ) {
-			return '';
-		}
-		d.setDate( d.getDate() + 60 );
-		return d.toLocaleDateString();
-	}
-
 	function rmRenumberClutches() {
 		$( '#rm-clutch-table tbody tr' ).each( function ( i ) {
 			$( this ).find( '.rm-clutch-no' ).text( i + 1 );
 		} );
 	}
 
+	function rmClutchCell( name ) {
+		return $( '<td/>' ).append(
+			$( '<input/>', { type: 'number', 'class': 'rm-narrow', name: name, min: '0' } )
+		);
+	}
+
 	$( '#rm-clutch-add' ).on( 'click', function () {
 		var row = $( '<tr/>' )
 			.append( $( '<td/>', { 'class': 'rm-clutch-no' } ) )
 			.append( $( '<td/>' ).append( $( '<input/>', { type: 'date', name: 'rm_clutch_lay[]' } ) ) )
-			.append( $( '<td/>' ).append( $( '<input/>', { type: 'number', name: 'rm_clutch_eggs[]', min: '0' } ) ) )
-			.append( $( '<td/>' ).append( $( '<input/>', { type: 'number', name: 'rm_clutch_hatched[]', min: '0' } ) ) )
-			.append( $( '<td/>', { 'class': 'rm-clutch-est', text: '—' } ) )
-			.append( $( '<td/>' ).append( $( '<button/>', { type: 'button', 'class': 'button rm-clutch-remove', text: 'Entfernen' } ) ) );
+			.append( rmClutchCell( 'rm_clutch_eggs[]' ) )
+			.append( $( '<td/>' ).append( $( '<input/>', { type: 'number', 'class': 'rm-narrow', name: 'rm_clutch_temp[]', min: '0', step: '0.1' } ) ) )
+			.append( rmClutchCell( 'rm_clutch_hatched[]' ) )
+			.append( rmClutchCell( 'rm_clutch_infertile[]' ) )
+			.append( rmClutchCell( 'rm_clutch_died[]' ) )
+			.append( rmClutchCell( 'rm_clutch_died_day[]' ) )
+			.append( $( '<td/>' ).append( $( '<button/>', { type: 'button', 'class': 'button rm-clutch-remove', text: 'Entf.' } ) ) );
 
 		$( '#rm-clutch-table tbody' ).append( row );
 		rmRenumberClutches();
@@ -157,11 +154,6 @@ jQuery( function ( $ ) {
 	$( document ).on( 'click', '.rm-clutch-remove', function () {
 		$( this ).closest( 'tr' ).remove();
 		rmRenumberClutches();
-	} );
-
-	$( document ).on( 'change', 'input[name="rm_clutch_lay[]"]', function () {
-		var est = rmEstimatedHatch( $( this ).val() );
-		$( this ).closest( 'tr' ).find( '.rm-clutch-est' ).text( est || '—' );
 	} );
 
 	// --- Gewichtsverlauf ---------------------------------------------------

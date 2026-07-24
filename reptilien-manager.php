@@ -3,7 +3,7 @@
  * Plugin Name:       Reptilien Manager
  * Plugin URI:        https://github.com/FeroXz/wpplugin
  * Description:       Verwaltung von Reptilien – Bartagame (Pogona vitticeps) und Grüner Leguan (Iguana iguana). Eigene Tiere mit Fotos und allen wichtigen Daten erfassen, Verpaarungen planen inkl. artspezifischer Genetik-Vorschau der Jungtiere sowie artgerechte Futterplanung und Fütterungsprotokoll.
- * Version:           1.5.0
+ * Version:           1.6.0
  * Author:            FeroXz
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'RM_VERSION', '1.5.0' );
+define( 'RM_VERSION', '1.6.0' );
 define( 'RM_PLUGIN_FILE', __FILE__ );
 define( 'RM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'RM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -25,6 +25,8 @@ define( 'RM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 require_once RM_PLUGIN_DIR . 'includes/class-rm-species.php';
 require_once RM_PLUGIN_DIR . 'includes/class-rm-post-types.php';
 require_once RM_PLUGIN_DIR . 'includes/class-rm-genetics.php';
+require_once RM_PLUGIN_DIR . 'includes/class-rm-growth.php';
+require_once RM_PLUGIN_DIR . 'includes/class-rm-incubation.php';
 require_once RM_PLUGIN_DIR . 'includes/class-rm-animal-meta.php';
 require_once RM_PLUGIN_DIR . 'includes/class-rm-pairing.php';
 require_once RM_PLUGIN_DIR . 'includes/class-rm-feeding.php';
@@ -103,6 +105,29 @@ final class Reptilien_Manager {
 				'uploadError'    => __( 'Der Upload ist fehlgeschlagen. Bitte erneut versuchen.', 'reptilien-manager' ),
 			)
 		);
+
+		// Gewichtsverlauf-Graphik auf dem Tier-Bearbeitungsbildschirm.
+		if ( $screen && 'rm_animal' === $screen->post_type ) {
+			self::enqueue_chartjs();
+			wp_enqueue_script( 'rm-charts', RM_PLUGIN_URL . 'assets/js/charts.js', array( 'rm-chartjs' ), RM_VERSION, true );
+		}
+	}
+
+	/**
+	 * Chart.js registrieren/einbinden. Standardmäßig als bundelbare lokale
+	 * Datei (assets/js/vendor/chart.min.js); ist diese nicht vorhanden, wird
+	 * auf das öffentliche CDN zurückgegriffen. Beides ist per Filter
+	 * `rm_chartjs_src` überschreibbar.
+	 */
+	private static function enqueue_chartjs() {
+		$local_path = RM_PLUGIN_DIR . 'assets/js/vendor/chart.min.js';
+		$local_url  = RM_PLUGIN_URL . 'assets/js/vendor/chart.min.js';
+		$cdn        = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+
+		$src = file_exists( $local_path ) ? $local_url : $cdn;
+		$src = apply_filters( 'rm_chartjs_src', $src );
+
+		wp_enqueue_script( 'rm-chartjs', $src, array(), '4.4.1', true );
 	}
 
 	public static function activate() {

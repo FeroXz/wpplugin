@@ -103,6 +103,8 @@ class RM_Admin_Pages {
 				<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Bitte mindestens ein Tier und eine Futterart auswählen.', 'reptilien-manager' ); ?></p></div>
 			<?php elseif ( 'error' === $msg ) : ?>
 				<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Die Fütterung konnte nicht gespeichert werden.', 'reptilien-manager' ); ?></p></div>
+			<?php elseif ( 'prices_saved' === $msg ) : ?>
+				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Futterpreise gespeichert.', 'reptilien-manager' ); ?></p></div>
 			<?php endif; ?>
 
 			<?php if ( ! $animals ) : ?>
@@ -162,6 +164,7 @@ class RM_Admin_Pages {
 							<th><?php esc_html_e( 'Alter / Gruppe', 'reptilien-manager' ); ?></th>
 							<th><?php esc_html_e( 'Empfehlung', 'reptilien-manager' ); ?></th>
 							<th><?php esc_html_e( 'Auswertung (Ist vs. Optimum)', 'reptilien-manager' ); ?></th>
+							<th><?php esc_html_e( 'Nährstoff-Bilanz', 'reptilien-manager' ); ?></th>
 							<th><?php esc_html_e( 'Letzte Fütterung', 'reptilien-manager' ); ?></th>
 						</tr>
 					</thead>
@@ -174,6 +177,7 @@ class RM_Admin_Pages {
 							$plan         = RM_Feeding::plan_for_age( $months, $species_key );
 							$last         = RM_Feeding::last_feeding( $animal->ID );
 							$analysis     = RM_Feeding::analyze_animal( $animal->ID );
+							$nutrients    = RM_Feeding::nutrient_balance( $animal->ID );
 							$notes        = get_post_meta( $animal->ID, '_rm_food_notes', true );
 							$protein_icon = 'herbivore' === RM_Species::diet( $species_key ) ? '🌿' : '🦗';
 							?>
@@ -195,6 +199,7 @@ class RM_Admin_Pages {
 									<span>🦴 <?php echo esc_html( $plan['supplements'] ); ?></span>
 								</td>
 								<td><?php self::render_analysis( $analysis ); ?></td>
+								<td><?php self::render_nutrients( $nutrients ); ?></td>
 								<td>
 									<?php
 									if ( $last && $last['date'] && strtotime( $last['date'] ) ) {
@@ -211,6 +216,8 @@ class RM_Admin_Pages {
 						<?php endforeach; ?>
 					</tbody>
 				</table>
+
+				<?php self::render_cost_section(); ?>
 			<?php endif; ?>
 
 			<p class="description">
@@ -218,6 +225,130 @@ class RM_Admin_Pages {
 			</p>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Nährstoff-Bilanz-Chips (Calcium/D3/Vitamine inkl. Toxizitäts-Warnung).
+	 *
+	 * @param array $nutrients Ergebnis von RM_Feeding::nutrient_balance().
+	 */
+	private static function render_nutrients( $nutrients ) {
+		if ( ! $nutrients['has_targets'] ) {
+			echo '<span class="rm-status rm-status--none">' . esc_html__( 'Kein Schlupfdatum', 'reptilien-manager' ) . '</span>';
+			return;
+		}
+		if ( ! $nutrients['has_data'] ) {
+			echo '<span class="rm-status rm-status--none">' . esc_html__( 'Keine Fütterungen im Zeitraum', 'reptilien-manager' ) . '</span>';
+			return;
+		}
+
+		$status_labels = array(
+			'ok'    => __( 'optimal', 'reptilien-manager' ),
+			'low'   => __( 'zu wenig', 'reptilien-manager' ),
+			'high'  => __( 'reichlich', 'reptilien-manager' ),
+			'toxic' => __( '⚠ Überdosierung', 'reptilien-manager' ),
+		);
+		// Toxizität nutzt die rote „high“-Optik.
+		$css_map = array(
+			'ok'    => 'ok',
+			'low'   => 'low',
+			'high'  => 'ok',
+			'toxic' => 'high',
+		);
+
+		echo '<div class="rm-analysis">';
+		foreach ( $nutrients['categories'] as $category ) {
+			$rate_label   = number_format_i18n( $category['rate'], 1 );
+			$target_label = $category['min'] === $category['max']
+				? number_format_i18n( $category['min'] )
+				: number_format_i18n( $category['min'] ) . '–' . number_format_i18n( $category['max'] );
+
+			printf(
+				'<span class="rm-status rm-status--%1$s">%2$s: %3$s×/Wo (Ziel %4$s) – %5$s</span>',
+				esc_attr( $css_map[ $category['status'] ] ),
+				esc_html( $category['label'] ),
+				esc_html( $rate_label ),
+				esc_html( $target_label ),
+				esc_html( $status_labels[ $category['status'] ] )
+			);
+		}
+		echo '</div>';
+	}
+
+	/**
+	 * Kosten-Tracking: Preis-Formular je Futterart plus Monatsreport.
+	 */
+	private static function render_cost_section() {
+		$prices = RM_Feeding::food_prices();
+		$report = RM_Feeding::cost_report( 30 );
+		$foods  = RM_Feeding::food_types();
+		?>
+		<h2><?php esc_html_e( '💶 Kosten-Tracking', 'reptilien-manager' ); ?></h2>
+		<div class="rm-cost-grid">
+			<div class="rm-cost-prices">
+				<h3><?php esc_html_e( 'Preise je Futterart (pro Portion)', 'reptilien-manager' ); ?></h3>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<input type="hidden" name="action" value="rm_save_food_prices" />
+					<?php wp_nonce_field( 'rm_food_prices', 'rm_food_prices_nonce' ); ?>
+					<table class="widefat striped rm-table">
+						<tbody>
+							<?php foreach ( $foods as $key => $label ) : ?>
+								<tr>
+									<td><?php echo esc_html( $label ); ?></td>
+									<td style="width:120px">
+										<input type="number" step="0.01" min="0" name="rm_price[<?php echo esc_attr( $key ); ?>]" value="<?php echo esc_attr( $prices[ $key ] ? $prices[ $key ] : '' ); ?>" />
+									</td>
+								</tr>
+							<?php endforeach; ?>
+						</tbody>
+					</table>
+					<p><?php submit_button( __( 'Preise speichern', 'reptilien-manager' ), 'secondary', 'submit', false ); ?></p>
+				</form>
+			</div>
+
+			<div class="rm-cost-report">
+				<h3><?php esc_html_e( 'Kosten (letzte 30 Tage)', 'reptilien-manager' ); ?></h3>
+				<?php if ( $report['total'] <= 0 ) : ?>
+					<p class="description"><?php esc_html_e( 'Noch keine Kosten berechenbar – bitte Preise hinterlegen und Fütterungen protokollieren.', 'reptilien-manager' ); ?></p>
+				<?php else : ?>
+					<p class="rm-cost-total">
+						<strong><?php echo esc_html( self::money( $report['total'] ) ); ?></strong>
+						<span class="description"><?php esc_html_e( 'in 30 Tagen', 'reptilien-manager' ); ?></span>
+						<?php /* translators: %s: Betrag */ ?>
+						<br /><?php echo esc_html( sprintf( __( 'Prognose ≈ %s / Monat', 'reptilien-manager' ), self::money( $report['monthly'] ) ) ); ?>
+					</p>
+
+					<?php if ( $report['per_food'] ) : ?>
+						<h4><?php esc_html_e( 'Nach Futterart', 'reptilien-manager' ); ?></h4>
+						<ul class="rm-cost-list">
+							<?php foreach ( $report['per_food'] as $key => $cost ) : ?>
+								<li><span><?php echo esc_html( isset( $foods[ $key ] ) ? $foods[ $key ] : $key ); ?></span><strong><?php echo esc_html( self::money( $cost ) ); ?></strong></li>
+							<?php endforeach; ?>
+						</ul>
+					<?php endif; ?>
+
+					<?php if ( $report['per_animal'] ) : ?>
+						<h4><?php esc_html_e( 'Pro Tier', 'reptilien-manager' ); ?></h4>
+						<ul class="rm-cost-list">
+							<?php foreach ( $report['per_animal'] as $animal_id => $cost ) : ?>
+								<li><span><?php echo esc_html( get_the_title( $animal_id ) ); ?></span><strong><?php echo esc_html( self::money( $cost ) ); ?></strong></li>
+							<?php endforeach; ?>
+						</ul>
+					<?php endif; ?>
+				<?php endif; ?>
+			</div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Betrag mit WordPress-Locale formatieren (ohne feste Währung).
+	 *
+	 * @param float $amount Betrag.
+	 * @return string
+	 */
+	private static function money( $amount ) {
+		return number_format_i18n( (float) $amount, 2 );
 	}
 
 	/**

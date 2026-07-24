@@ -68,16 +68,71 @@ class RM_Pairing {
 			}
 		}
 
+		// Verpaarungs-weite Temperatur als Vorbelegung, falls pro Gelege keine gesetzt.
+		$default_temp = get_post_meta( $pairing_id, '_rm_incubation_temp', true );
+
 		$clean = array();
 		foreach ( $clutches as $clutch ) {
+			$temp = isset( $clutch['temp'] ) && '' !== $clutch['temp'] ? $clutch['temp'] : $default_temp;
 			$clean[] = array(
-				'lay_date' => isset( $clutch['lay_date'] ) ? $clutch['lay_date'] : '',
-				'eggs'     => isset( $clutch['eggs'] ) ? absint( $clutch['eggs'] ) : 0,
-				'hatched'  => isset( $clutch['hatched'] ) ? absint( $clutch['hatched'] ) : 0,
+				'lay_date'  => isset( $clutch['lay_date'] ) ? $clutch['lay_date'] : '',
+				'eggs'      => isset( $clutch['eggs'] ) ? absint( $clutch['eggs'] ) : 0,
+				'hatched'   => isset( $clutch['hatched'] ) ? absint( $clutch['hatched'] ) : 0,
+				'temp'      => $temp,
+				'infertile' => isset( $clutch['infertile'] ) ? absint( $clutch['infertile'] ) : 0,
+				'died'      => isset( $clutch['died'] ) ? absint( $clutch['died'] ) : 0,
+				'died_day'  => isset( $clutch['died_day'] ) ? absint( $clutch['died_day'] ) : 0,
 			);
 		}
 
 		return $clean;
+	}
+
+	/**
+	 * Schlupfquote eines Geleges (geschlüpft / Eier).
+	 *
+	 * @param array $clutch Gelege-Daten.
+	 * @return float|null Anteil 0–1 oder null (keine Eier hinterlegt).
+	 */
+	public static function clutch_hatch_rate( $clutch ) {
+		if ( empty( $clutch['eggs'] ) ) {
+			return null;
+		}
+		return min( 1.0, $clutch['hatched'] / $clutch['eggs'] );
+	}
+
+	/**
+	 * Durchschnittliche Schlupfquote über alle Gelege aller Verpaarungen
+	 * (nur Gelege mit Eiern und mindestens einem Schlupf-Eintrag).
+	 *
+	 * @return float|null
+	 */
+	public static function average_hatch_rate() {
+		$pairings = get_posts(
+			array(
+				'post_type'      => 'rm_pairing',
+				'posts_per_page' => -1,
+				'post_status'    => array( 'publish', 'draft', 'private' ),
+				'fields'         => 'ids',
+			)
+		);
+
+		$sum   = 0.0;
+		$count = 0;
+		foreach ( $pairings as $pid ) {
+			foreach ( self::get_clutches( $pid ) as $clutch ) {
+				if ( empty( $clutch['eggs'] ) || ( 0 === $clutch['hatched'] && 0 === $clutch['infertile'] && 0 === $clutch['died'] ) ) {
+					continue; // Noch nicht ausgewertete Gelege überspringen.
+				}
+				$rate = self::clutch_hatch_rate( $clutch );
+				if ( null !== $rate ) {
+					$sum += $rate;
+					$count++;
+				}
+			}
+		}
+
+		return $count ? $sum / $count : null;
 	}
 
 	/**
@@ -241,31 +296,37 @@ class RM_Pairing {
 	public static function render_clutches( $post ) {
 		$clutches  = self::get_clutches( $post->ID );
 		$offspring = self::offspring( $post->ID );
+		$avg_rate  = self::average_hatch_rate();
 		?>
 		<p class="description">
-			<?php esc_html_e( 'Pro Gelege: Ablagedatum, Anzahl der gelegten Eier und – sobald es soweit ist – die tatsächlich geschlüpfte Anzahl. Das ungefähre Schlupfdatum (Ablage + 60 Tage) wird automatisch berechnet.', 'reptilien-manager' ); ?>
+			<?php esc_html_e( 'Pro Gelege: Ablagedatum, Eizahl, Inkubationstemperatur und – sobald es soweit ist – geschlüpfte, unbefruchtete und gestorbene Eier. Schlupf-Vorhersage und Schlupfquote werden nach dem Speichern angezeigt.', 'reptilien-manager' ); ?>
 		</p>
 		<table class="widefat rm-clutch-table" id="rm-clutch-table">
 			<thead>
 				<tr>
-					<th style="width:40px"><?php esc_html_e( 'Nr.', 'reptilien-manager' ); ?></th>
-					<th><?php esc_html_e( 'Ablagedatum', 'reptilien-manager' ); ?></th>
-					<th><?php esc_html_e( 'Eier gelegt', 'reptilien-manager' ); ?></th>
+					<th style="width:34px"><?php esc_html_e( 'Nr.', 'reptilien-manager' ); ?></th>
+					<th><?php esc_html_e( 'Ablage', 'reptilien-manager' ); ?></th>
+					<th><?php esc_html_e( 'Eier', 'reptilien-manager' ); ?></th>
+					<th title="<?php esc_attr_e( 'Inkubationstemperatur in °C', 'reptilien-manager' ); ?>">°C</th>
 					<th><?php esc_html_e( 'Geschlüpft', 'reptilien-manager' ); ?></th>
-					<th><?php esc_html_e( 'Erwarteter Schlupf (≈)', 'reptilien-manager' ); ?></th>
+					<th title="<?php esc_attr_e( 'unbefruchtete Eier', 'reptilien-manager' ); ?>"><?php esc_html_e( 'Unbefr.', 'reptilien-manager' ); ?></th>
+					<th title="<?php esc_attr_e( 'abgestorbene Embryonen', 'reptilien-manager' ); ?>"><?php esc_html_e( 'Gestorben', 'reptilien-manager' ); ?></th>
+					<th title="<?php esc_attr_e( 'Inkubationstag, an dem der Embryo abstarb', 'reptilien-manager' ); ?>"><?php esc_html_e( 'Tag †', 'reptilien-manager' ); ?></th>
 					<th></th>
 				</tr>
 			</thead>
 			<tbody>
 				<?php foreach ( $clutches as $i => $clutch ) : ?>
-					<?php $est = self::estimated_hatch( $clutch['lay_date'] ); ?>
 					<tr>
 						<td class="rm-clutch-no"><?php echo esc_html( $i + 1 ); ?></td>
 						<td><input type="date" name="rm_clutch_lay[]" value="<?php echo esc_attr( $clutch['lay_date'] ); ?>" /></td>
-						<td><input type="number" min="0" name="rm_clutch_eggs[]" value="<?php echo esc_attr( $clutch['eggs'] ); ?>" /></td>
-						<td><input type="number" min="0" name="rm_clutch_hatched[]" value="<?php echo esc_attr( $clutch['hatched'] ); ?>" /></td>
-						<td class="rm-clutch-est"><?php echo esc_html( $est ? date_i18n( get_option( 'date_format' ), strtotime( $est ) ) : '—' ); ?></td>
-						<td><button type="button" class="button rm-clutch-remove"><?php esc_html_e( 'Entfernen', 'reptilien-manager' ); ?></button></td>
+						<td><input type="number" min="0" class="rm-narrow" name="rm_clutch_eggs[]" value="<?php echo esc_attr( $clutch['eggs'] ); ?>" /></td>
+						<td><input type="number" step="0.1" min="0" class="rm-narrow" name="rm_clutch_temp[]" value="<?php echo esc_attr( $clutch['temp'] ); ?>" /></td>
+						<td><input type="number" min="0" class="rm-narrow" name="rm_clutch_hatched[]" value="<?php echo esc_attr( $clutch['hatched'] ); ?>" /></td>
+						<td><input type="number" min="0" class="rm-narrow" name="rm_clutch_infertile[]" value="<?php echo esc_attr( $clutch['infertile'] ? $clutch['infertile'] : '' ); ?>" /></td>
+						<td><input type="number" min="0" class="rm-narrow" name="rm_clutch_died[]" value="<?php echo esc_attr( $clutch['died'] ? $clutch['died'] : '' ); ?>" /></td>
+						<td><input type="number" min="0" class="rm-narrow" name="rm_clutch_died_day[]" value="<?php echo esc_attr( $clutch['died_day'] ? $clutch['died_day'] : '' ); ?>" /></td>
+						<td><button type="button" class="button rm-clutch-remove"><?php esc_html_e( 'Entf.', 'reptilien-manager' ); ?></button></td>
 					</tr>
 				<?php endforeach; ?>
 			</tbody>
@@ -276,6 +337,8 @@ class RM_Pairing {
 		<p class="description">
 			<?php esc_html_e( 'Beim Speichern werden für jedes Gelege automatisch so viele Nachzucht-Tiere (als Entwurf) angelegt, wie geschlüpft eingetragen ist – inklusive Verknüpfung zu dieser Verpaarung und Schlupfdatum.', 'reptilien-manager' ); ?>
 		</p>
+
+		<?php self::render_clutch_analytics( $clutches, $avg_rate ); ?>
 
 		<?php if ( $offspring ) : ?>
 			<h4><?php esc_html_e( 'Verknüpfte Nachzuchten', 'reptilien-manager' ); ?></h4>
@@ -295,6 +358,152 @@ class RM_Pairing {
 				<?php endforeach; ?>
 			</ul>
 		<?php endif; ?>
+		<?php
+	}
+
+	/**
+	 * Auswertung & Timeline pro Gelege (Schlupf-Vorhersage, Schlupfquote, Verluste).
+	 *
+	 * @param array[]    $clutches Gelege-Daten.
+	 * @param float|null $avg_rate Durchschnittliche Schlupfquote im Bestand.
+	 */
+	private static function render_clutch_analytics( $clutches, $avg_rate ) {
+		$has_any = false;
+		foreach ( $clutches as $clutch ) {
+			if ( $clutch['lay_date'] || $clutch['eggs'] ) {
+				$has_any = true;
+				break;
+			}
+		}
+		if ( ! $has_any ) {
+			return;
+		}
+		?>
+		<h4><?php esc_html_e( 'Auswertung & Timeline', 'reptilien-manager' ); ?></h4>
+		<div class="rm-clutch-analytics">
+			<?php
+			foreach ( $clutches as $i => $clutch ) :
+				if ( ! $clutch['lay_date'] && ! $clutch['eggs'] ) {
+					continue;
+				}
+				$predict = RM_Incubation::predict( $clutch['lay_date'], $clutch['temp'] );
+				$rate    = self::clutch_hatch_rate( $clutch );
+				?>
+				<div class="rm-clutch-card">
+					<div class="rm-clutch-card__head">
+						<?php /* translators: %d: Gelege-Nummer */ ?>
+						<strong><?php echo esc_html( sprintf( __( 'Gelege %d', 'reptilien-manager' ), $i + 1 ) ); ?></strong>
+						<?php if ( $clutch['eggs'] ) : ?>
+							<?php /* translators: %d: Anzahl Eier */ ?>
+							<span class="rm-chip"><?php echo esc_html( sprintf( _n( '%d Ei', '%d Eier', $clutch['eggs'], 'reptilien-manager' ), $clutch['eggs'] ) ); ?></span>
+						<?php endif; ?>
+						<?php if ( '' !== $clutch['temp'] ) : ?>
+							<span class="rm-chip"><?php echo esc_html( $clutch['temp'] . ' °C' ); ?></span>
+						<?php endif; ?>
+					</div>
+
+					<?php if ( $predict ) : ?>
+						<p class="rm-clutch-predict">🌡️ <?php echo esc_html( RM_Incubation::prediction_label( $clutch['lay_date'], $clutch['temp'] ) ); ?></p>
+						<?php self::render_clutch_timeline( $clutch['lay_date'], $predict ); ?>
+					<?php endif; ?>
+
+					<?php if ( null !== $rate && ( $clutch['hatched'] || $clutch['infertile'] || $clutch['died'] ) ) : ?>
+						<?php
+						$pct       = round( $rate * 100 );
+						$loss_bits = array();
+						if ( $clutch['infertile'] ) {
+							/* translators: %d: Anzahl unbefruchtet */
+							$loss_bits[] = sprintf( __( '%d unbefruchtet', 'reptilien-manager' ), $clutch['infertile'] );
+						}
+						if ( $clutch['died'] ) {
+							if ( $clutch['died_day'] ) {
+								/* translators: 1: Anzahl gestorben, 2: Inkubationstag */
+								$loss_bits[] = sprintf( __( '%1$d gestorben (Tag %2$d)', 'reptilien-manager' ), $clutch['died'], $clutch['died_day'] );
+							} else {
+								/* translators: %d: Anzahl gestorben */
+								$loss_bits[] = sprintf( __( '%d gestorben', 'reptilien-manager' ), $clutch['died'] );
+							}
+						}
+
+						$vs_class = '';
+						$vs_text  = '';
+						if ( null !== $avg_rate ) {
+							$diff = $rate - $avg_rate;
+							if ( $diff > 0.05 ) {
+								$vs_class = 'rm-status--ok';
+								/* translators: %d: Prozent */
+								$vs_text = sprintf( __( '%d %% über Ø', 'reptilien-manager' ), round( $diff * 100 ) );
+							} elseif ( $diff < -0.05 ) {
+								$vs_class = 'rm-status--low';
+								/* translators: %d: Prozent */
+								$vs_text = sprintf( __( '%d %% unter Ø', 'reptilien-manager' ), round( abs( $diff ) * 100 ) );
+							} else {
+								$vs_class = 'rm-status--none';
+								$vs_text  = __( 'im Ø', 'reptilien-manager' );
+							}
+						}
+						?>
+						<p class="rm-clutch-rate">
+							<?php /* translators: 1: Schlupfquote Prozent, 2: geschlüpft, 3: Eier */ ?>
+							🐣 <strong><?php echo esc_html( sprintf( __( 'Schlupfquote %1$d %% (%2$d/%3$d)', 'reptilien-manager' ), $pct, $clutch['hatched'], $clutch['eggs'] ) ); ?></strong>
+							<?php if ( $vs_text ) : ?>
+								<span class="rm-status <?php echo esc_attr( $vs_class ); ?>"><?php echo esc_html( $vs_text ); ?></span>
+							<?php endif; ?>
+							<?php if ( $loss_bits ) : ?>
+								<br /><span class="description"><?php echo esc_html( implode( ' · ', $loss_bits ) ); ?></span>
+							<?php endif; ?>
+						</p>
+					<?php endif; ?>
+				</div>
+			<?php endforeach; ?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * CSS-Timeline von der Eiablage bis zum vorhergesagten Schlupffenster.
+	 *
+	 * @param string $lay_date Ablagedatum.
+	 * @param array  $predict  Ergebnis von RM_Incubation::predict().
+	 */
+	private static function render_clutch_timeline( $lay_date, $predict ) {
+		$lay_ts = strtotime( $lay_date );
+		$min_ts = strtotime( $predict['min_date'] );
+		$max_ts = strtotime( $predict['max_date'] );
+		$now_ts = time();
+
+		$span = max( 1, $max_ts - $lay_ts );
+
+		// Positionen in Prozent.
+		$window_start = ( $min_ts - $lay_ts ) / $span * 100;
+		$window_start = max( 0, min( 100, $window_start ) );
+		$progress     = ( $now_ts - $lay_ts ) / $span * 100;
+		$progress     = max( 0, min( 100, $progress ) );
+
+		$days_in = floor( ( $now_ts - $lay_ts ) / DAY_IN_SECONDS );
+		$hatched_window = $now_ts >= $min_ts;
+		?>
+		<div class="rm-timeline" role="img" aria-label="<?php esc_attr_e( 'Inkubations-Timeline', 'reptilien-manager' ); ?>">
+			<div class="rm-timeline__track">
+				<div class="rm-timeline__window" style="left:<?php echo esc_attr( round( $window_start, 1 ) ); ?>%;right:0"></div>
+				<div class="rm-timeline__progress" style="width:<?php echo esc_attr( round( $progress, 1 ) ); ?>%"></div>
+				<div class="rm-timeline__today" style="left:<?php echo esc_attr( round( $progress, 1 ) ); ?>%"></div>
+			</div>
+			<div class="rm-timeline__labels">
+				<span><?php echo esc_html( date_i18n( 'd.m.', $lay_ts ) ); ?></span>
+				<span class="rm-timeline__mid">
+					<?php
+					if ( $days_in >= 0 && ! $hatched_window ) {
+						/* translators: %d: Inkubationstage */
+						echo esc_html( sprintf( __( 'Tag %d', 'reptilien-manager' ), $days_in ) );
+					} elseif ( $hatched_window ) {
+						esc_html_e( 'Schlupffenster', 'reptilien-manager' );
+					}
+					?>
+				</span>
+				<span><?php echo esc_html( date_i18n( 'd.m.', $max_ts ) ); ?></span>
+			</div>
+		</div>
 		<?php
 	}
 
@@ -344,21 +553,34 @@ class RM_Pairing {
 		}
 
 		// Gelege.
-		$lays    = isset( $_POST['rm_clutch_lay'] ) ? array_map( 'sanitize_text_field', wp_unslash( (array) $_POST['rm_clutch_lay'] ) ) : array();
-		$eggs    = isset( $_POST['rm_clutch_eggs'] ) ? array_map( 'absint', wp_unslash( (array) $_POST['rm_clutch_eggs'] ) ) : array();
-		$hatched = isset( $_POST['rm_clutch_hatched'] ) ? array_map( 'absint', wp_unslash( (array) $_POST['rm_clutch_hatched'] ) ) : array();
+		$lays      = isset( $_POST['rm_clutch_lay'] ) ? array_map( 'sanitize_text_field', wp_unslash( (array) $_POST['rm_clutch_lay'] ) ) : array();
+		$eggs      = isset( $_POST['rm_clutch_eggs'] ) ? array_map( 'absint', wp_unslash( (array) $_POST['rm_clutch_eggs'] ) ) : array();
+		$temps     = isset( $_POST['rm_clutch_temp'] ) ? array_map( 'sanitize_text_field', wp_unslash( (array) $_POST['rm_clutch_temp'] ) ) : array();
+		$hatched   = isset( $_POST['rm_clutch_hatched'] ) ? array_map( 'absint', wp_unslash( (array) $_POST['rm_clutch_hatched'] ) ) : array();
+		$infertile = isset( $_POST['rm_clutch_infertile'] ) ? array_map( 'absint', wp_unslash( (array) $_POST['rm_clutch_infertile'] ) ) : array();
+		$died      = isset( $_POST['rm_clutch_died'] ) ? array_map( 'absint', wp_unslash( (array) $_POST['rm_clutch_died'] ) ) : array();
+		$died_day  = isset( $_POST['rm_clutch_died_day'] ) ? array_map( 'absint', wp_unslash( (array) $_POST['rm_clutch_died_day'] ) ) : array();
 
 		$clutches = array();
 		foreach ( $lays as $i => $lay ) {
 			$e = isset( $eggs[ $i ] ) ? $eggs[ $i ] : 0;
 			$h = isset( $hatched[ $i ] ) ? $hatched[ $i ] : 0;
-			if ( '' === $lay && ! $e && ! $h ) {
+			$t = isset( $temps[ $i ] ) ? $temps[ $i ] : '';
+			$u = isset( $infertile[ $i ] ) ? $infertile[ $i ] : 0;
+			$d = isset( $died[ $i ] ) ? $died[ $i ] : 0;
+			if ( '' === $lay && ! $e && ! $h && ! $u && ! $d ) {
 				continue;
 			}
+			// Temperatur auf einen plausiblen Bereich begrenzen.
+			$temp_val = '' === $t ? '' : (string) max( 0, min( 45, (float) str_replace( ',', '.', $t ) ) );
 			$clutches[] = array(
-				'lay_date' => $lay,
-				'eggs'     => $e,
-				'hatched'  => $h,
+				'lay_date'  => $lay,
+				'eggs'      => $e,
+				'hatched'   => $h,
+				'temp'      => $temp_val,
+				'infertile' => $u,
+				'died'      => $d,
+				'died_day'  => isset( $died_day[ $i ] ) ? $died_day[ $i ] : 0,
 			);
 		}
 		update_post_meta( $post_id, '_rm_clutches', $clutches );

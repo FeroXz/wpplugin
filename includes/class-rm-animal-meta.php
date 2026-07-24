@@ -17,6 +17,68 @@ class RM_Animal_Meta {
 		add_filter( 'manage_rm_animal_posts_columns', array( __CLASS__, 'admin_columns' ) );
 		add_action( 'manage_rm_animal_posts_custom_column', array( __CLASS__, 'admin_column_content' ), 10, 2 );
 		add_action( 'wp_ajax_rm_upload_photo', array( __CLASS__, 'ajax_upload_photo' ) );
+		add_action( 'admin_post_rm_export_weights', array( __CLASS__, 'export_weights_csv' ) );
+	}
+
+	/**
+	 * Exportiert den Gewichtsverlauf eines Tieres als CSV
+	 * (Datum, Alter in Monaten, Gewicht, Erwartet, Status).
+	 */
+	public static function export_weights_csv() {
+		$animal_id = isset( $_GET['animal'] ) ? absint( $_GET['animal'] ) : 0;
+
+		if ( ! $animal_id || ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_key( $_GET['_wpnonce'] ), 'rm_export_weights_' . $animal_id ) ) {
+			wp_die( esc_html__( 'Sicherheitsprüfung fehlgeschlagen.', 'reptilien-manager' ) );
+		}
+		if ( ! current_user_can( 'edit_post', $animal_id ) ) {
+			wp_die( esc_html__( 'Keine Berechtigung.', 'reptilien-manager' ) );
+		}
+
+		$chart = RM_Growth::chart_data( $animal_id );
+		$title = sanitize_file_name( get_the_title( $animal_id ) );
+
+		nocache_headers();
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="gewicht-' . ( $title ? $title : $animal_id ) . '.csv"' );
+
+		$out = fopen( 'php://output', 'w' );
+		// UTF-8 BOM, damit Excel Umlaute korrekt anzeigt.
+		fwrite( $out, "\xEF\xBB\xBF" );
+		fputcsv(
+			$out,
+			array(
+				__( 'Datum', 'reptilien-manager' ),
+				__( 'Alter (Monate)', 'reptilien-manager' ),
+				__( 'Gewicht (g)', 'reptilien-manager' ),
+				__( 'Erwartet (g)', 'reptilien-manager' ),
+				__( 'Status', 'reptilien-manager' ),
+			),
+			';'
+		);
+
+		$status_labels = array(
+			'low'     => __( 'untergewichtig', 'reptilien-manager' ),
+			'normal'  => __( 'normal', 'reptilien-manager' ),
+			'high'    => __( 'übergewichtig', 'reptilien-manager' ),
+			'unknown' => __( 'unbekannt', 'reptilien-manager' ),
+		);
+
+		foreach ( $chart['points'] as $point ) {
+			fputcsv(
+				$out,
+				array(
+					$point['date'],
+					null === $point['x'] ? '' : $point['x'],
+					$point['y'],
+					null === $point['expected'] ? '' : $point['expected'],
+					isset( $status_labels[ $point['status'] ] ) ? $status_labels[ $point['status'] ] : $point['status'],
+				),
+				';'
+			);
+		}
+
+		fclose( $out );
+		exit;
 	}
 
 	public static function add_meta_boxes() {
@@ -39,6 +101,52 @@ class RM_Animal_Meta {
 		);
 	}
 
+	/**
+	 * Körperkonditions-Score (BCS) 1–5.
+	 *
+	 * @return array
+	 */
+	public static function bcs_options() {
+		return array(
+			''  => __( '– keine Angabe –', 'reptilien-manager' ),
+			'1' => __( '1 – stark abgemagert', 'reptilien-manager' ),
+			'2' => __( '2 – untergewichtig', 'reptilien-manager' ),
+			'3' => __( '3 – ideal', 'reptilien-manager' ),
+			'4' => __( '4 – kräftig', 'reptilien-manager' ),
+			'5' => __( '5 – übergewichtig', 'reptilien-manager' ),
+		);
+	}
+
+	/**
+	 * Temperament-Skala 1–5.
+	 *
+	 * @return array
+	 */
+	public static function temperament_options() {
+		return array(
+			''  => __( '– keine Angabe –', 'reptilien-manager' ),
+			'1' => __( '1 – sehr scheu', 'reptilien-manager' ),
+			'2' => __( '2 – zurückhaltend', 'reptilien-manager' ),
+			'3' => __( '3 – ausgeglichen', 'reptilien-manager' ),
+			'4' => __( '4 – forsch', 'reptilien-manager' ),
+			'5' => __( '5 – aggressiv', 'reptilien-manager' ),
+		);
+	}
+
+	/**
+	 * Farbintensität-Skala.
+	 *
+	 * @return array
+	 */
+	public static function color_options() {
+		return array(
+			''       => __( '– keine Angabe –', 'reptilien-manager' ),
+			'hell'   => __( 'Hell', 'reptilien-manager' ),
+			'mittel' => __( 'Mittel', 'reptilien-manager' ),
+			'dunkel' => __( 'Dunkel', 'reptilien-manager' ),
+		);
+	}
+
 	public static function render_details( $post ) {
 		wp_nonce_field( 'rm_animal_meta', 'rm_animal_meta_nonce' );
 
@@ -49,6 +157,15 @@ class RM_Animal_Meta {
 		$identifier = get_post_meta( $post->ID, '_rm_identifier', true );
 		$length     = get_post_meta( $post->ID, '_rm_length', true );
 		$food_notes = get_post_meta( $post->ID, '_rm_food_notes', true );
+
+		// Erweiterte Stammdaten (Morphologie & Kondition).
+		$bcs         = get_post_meta( $post->ID, '_rm_bcs', true );
+		$temperament = get_post_meta( $post->ID, '_rm_temperament', true );
+		$color       = get_post_meta( $post->ID, '_rm_color', true );
+		$shed        = get_post_meta( $post->ID, '_rm_shed_interval', true );
+		$svl         = get_post_meta( $post->ID, '_rm_svl', true );
+		$tail        = get_post_meta( $post->ID, '_rm_tail', true );
+		$girth       = get_post_meta( $post->ID, '_rm_girth', true );
 		?>
 		<table class="form-table rm-form-table">
 			<tr>
@@ -85,6 +202,57 @@ class RM_Animal_Meta {
 			<tr>
 				<th><label for="rm_length"><?php esc_html_e( 'Gesamtlänge (cm)', 'reptilien-manager' ); ?></label></th>
 				<td><input type="number" step="0.1" min="0" name="rm_length" id="rm_length" value="<?php echo esc_attr( $length ); ?>" /></td>
+			</tr>
+			<tr>
+				<th><?php esc_html_e( 'Morphologie (cm)', 'reptilien-manager' ); ?></th>
+				<td class="rm-inline-fields">
+					<label><?php esc_html_e( 'KRL', 'reptilien-manager' ); ?>
+						<input type="number" step="0.1" min="0" name="rm_svl" value="<?php echo esc_attr( $svl ); ?>" title="<?php esc_attr_e( 'Kopf-Rumpf-Länge', 'reptilien-manager' ); ?>" />
+					</label>
+					<label><?php esc_html_e( 'Schwanz', 'reptilien-manager' ); ?>
+						<input type="number" step="0.1" min="0" name="rm_tail" value="<?php echo esc_attr( $tail ); ?>" />
+					</label>
+					<label><?php esc_html_e( 'Umfang', 'reptilien-manager' ); ?>
+						<input type="number" step="0.1" min="0" name="rm_girth" value="<?php echo esc_attr( $girth ); ?>" />
+					</label>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="rm_bcs"><?php esc_html_e( 'Körperkondition (BCS 1–5)', 'reptilien-manager' ); ?></label></th>
+				<td>
+					<select name="rm_bcs" id="rm_bcs">
+						<?php foreach ( self::bcs_options() as $value => $label ) : ?>
+							<option value="<?php echo esc_attr( $value ); ?>" <?php selected( (string) $bcs, (string) $value ); ?>><?php echo esc_html( $label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="rm_temperament"><?php esc_html_e( 'Temperament (1–5)', 'reptilien-manager' ); ?></label></th>
+				<td>
+					<select name="rm_temperament" id="rm_temperament">
+						<?php foreach ( self::temperament_options() as $value => $label ) : ?>
+							<option value="<?php echo esc_attr( $value ); ?>" <?php selected( (string) $temperament, (string) $value ); ?>><?php echo esc_html( $label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="rm_color"><?php esc_html_e( 'Farbintensität', 'reptilien-manager' ); ?></label></th>
+				<td>
+					<select name="rm_color" id="rm_color">
+						<?php foreach ( self::color_options() as $value => $label ) : ?>
+							<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $color, $value ); ?>><?php echo esc_html( $label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="rm_shed_interval"><?php esc_html_e( 'Häutungs-Intervall (Tage)', 'reptilien-manager' ); ?></label></th>
+				<td>
+					<input type="number" min="0" name="rm_shed_interval" id="rm_shed_interval" value="<?php echo esc_attr( $shed ); ?>" />
+					<p class="description"><?php esc_html_e( 'Durchschnittlicher Abstand zwischen den Häutungen (Ecdysis).', 'reptilien-manager' ); ?></p>
+				</td>
 			</tr>
 			<tr>
 				<th><label for="rm_parent_pairing"><?php esc_html_e( 'Eltern-Verpaarung (eigene Nachzucht)', 'reptilien-manager' ); ?></label></th>
@@ -168,7 +336,25 @@ class RM_Animal_Meta {
 		if ( ! is_array( $weights ) ) {
 			$weights = array();
 		}
+
+		$chart = RM_Growth::chart_data( $post->ID );
+		$export_url = wp_nonce_url(
+			admin_url( 'admin-post.php?action=rm_export_weights&animal=' . $post->ID ),
+			'rm_export_weights_' . $post->ID
+		);
 		?>
+		<?php if ( $chart['points'] ) : ?>
+			<div class="rm-chart-wrap">
+				<canvas id="rm-weight-chart" height="220"></canvas>
+			</div>
+			<script type="application/json" id="rm-weight-chart-data"><?php echo wp_json_encode( $chart ); ?></script>
+			<?php if ( ! $chart['has_age'] ) : ?>
+				<p class="description"><?php esc_html_e( 'Für die Referenz-Wachstumskurve und die X-Achse „Alter“ bitte ein Schlupfdatum in den Stammdaten hinterlegen.', 'reptilien-manager' ); ?></p>
+			<?php endif; ?>
+			<p>
+				<a class="button" href="<?php echo esc_url( $export_url ); ?>"><?php esc_html_e( 'Als CSV exportieren', 'reptilien-manager' ); ?></a>
+			</p>
+		<?php endif; ?>
 		<table class="widefat rm-weight-table" id="rm-weight-table">
 			<thead>
 				<tr>
@@ -273,12 +459,20 @@ class RM_Animal_Meta {
 		}
 
 		$text_fields = array(
-			'rm_sex'        => '_rm_sex',
-			'rm_birth'      => '_rm_birth',
-			'rm_origin'     => '_rm_origin',
-			'rm_acquired'   => '_rm_acquired',
-			'rm_identifier' => '_rm_identifier',
-			'rm_length'     => '_rm_length',
+			'rm_sex'           => '_rm_sex',
+			'rm_birth'         => '_rm_birth',
+			'rm_origin'        => '_rm_origin',
+			'rm_acquired'      => '_rm_acquired',
+			'rm_identifier'    => '_rm_identifier',
+			'rm_length'        => '_rm_length',
+			// Erweiterte Stammdaten.
+			'rm_bcs'           => '_rm_bcs',
+			'rm_temperament'   => '_rm_temperament',
+			'rm_color'         => '_rm_color',
+			'rm_shed_interval' => '_rm_shed_interval',
+			'rm_svl'           => '_rm_svl',
+			'rm_tail'          => '_rm_tail',
+			'rm_girth'         => '_rm_girth',
 		);
 
 		foreach ( $text_fields as $field => $meta_key ) {

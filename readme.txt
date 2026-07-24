@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.5.0
+Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,7 +18,8 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
 
 * Eigene Tiere als eigener Inhaltstyp „Reptilien“ mit Profilfoto und Fotogalerie
 * Stammdaten: Geschlecht, Schlupfdatum (mit automatischer Altersberechnung), Herkunft/Züchter, Erwerbsdatum, Kennzeichnung, Gesamtlänge
-* Gewichtsverlauf mit beliebig vielen Wiegungen
+* Erweiterte Morphologie & Kondition: KRL, Schwanzlänge, Umfang, Körperkonditions-Score (BCS 1–5), Temperament (1–5), Farbintensität und Häutungs-Intervall
+* Gewichtsverlauf als interaktive Chart.js-Graphik (Alter × Gewicht) mit erwarteter Referenz-Wachstumskurve pro Art, Anomalie-Erkennung (unter-/übergewichtig) und CSV-Export
 * Freitext für Haltung, Gesundheit und Besonderheiten
 * Arten-Taxonomie mit vorbereiteten Profilen: Bartagame (Pogona vitticeps) und Grüner Leguan (Iguana iguana) – Genetik-Set und Futterplan richten sich automatisch nach der zugeordneten Art
 * Beitrags-Vorlagen: Steckbrief (Tabelle), Ausführliches Porträt, Zuchttier-Präsentation und Kurzprofil – der Beitragstext wird per Klick automatisch aus den eingetragenen Daten erzeugt, inklusive Profilfoto und Galerie (Gutenberg-Blöcke, Classic-Editor-kompatibel)
@@ -34,6 +35,7 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
 * Die Genetik-Vorschau nutzt automatisch das Gen-Set der Art; bei Elterntieren unterschiedlicher Arten wird gewarnt
 * Verpaarungen planen: Vater und Mutter auswählen, Verpaarungsdatum und Inkubationstemperatur festhalten
 * Gelege-Verwaltung pro Verpaarung: mehrere Gelege mit Ablagedatum, Anzahl gelegter Eier, tatsächlich geschlüpfter Anzahl und automatisch berechnetem ungefähren Schlupfdatum (Ablage + 60 Tage)
+* Gelege-Verwaltung 2.0: pro Gelege Inkubationstemperatur, unbefruchtete und abgestorbene Eier (mit Absterbe-Tag); temperaturabhängige Schlupf-Vorhersage (z. B. 28 °C ≈ Tag 58–65, 31 °C ≈ Tag 50–54) mit grafischer Timeline; Schlupfquote in Prozent inkl. Vergleich zum Bestands-Durchschnitt
 * Nachzuchten werden beim Speichern automatisch als Tier-Entwürfe angelegt (pro Gelege entsprechend der geschlüpften Anzahl) – verknüpft mit der Verpaarung, inkl. Schlupfdatum und Art
 * Abstammung am Tier: eigene Nachzuchten können ihrer Eltern-Verpaarung (und dem Gelege) zugeordnet werden
 * Genetik-Vorschau der Jungtiere nach Mendelscher Vererbung (Punnett): kombinierte Ergebnisse mit Wahrscheinlichkeiten sowie Aufschlüsselung pro Gen, inkl. Kombi-Morph Wero (Zero × Witblits)
@@ -44,8 +46,10 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
 * Artgerechter, altersgerechter Futterplan – Bartagame (Allesfresser: Insekten + Grünfutter) und Grüner Leguan (strikter Pflanzenfresser: Blattgrün, kein tierisches Eiweiß, MBD-/Gicht-Hinweise) – mit Supplement-Empfehlungen (Calcium, Calcium+D3, Vitamine)
 * Schnell-Eintrag direkt auf der Futterplan-Seite: mehrere Tiere (oder „Alle Tiere“) und mehrere Futterarten gleichzeitig in einem Eintrag, plus Menge, Supplemente und Notizen
 * Fütterungs-Auswertung: vergleicht die protokollierten Fütterungen der letzten 14 Tage pro Tier mit dem art- und altersgerechten Optimum (Insekten-, Grünfutter- und Calcium-Frequenz pro Woche) und zeigt farbige Status-Chips (optimal / zu wenig / zu viel) – beim Leguan wird jede Insektenfütterung als „zu viel“ markiert
+* Nährstoff-Bilanz pro Tier: Calcium-, Vitamin-D3- und Vitamin-Frequenz gegen das art-/altersgerechte Ziel, inkl. Toxizitäts-Warnung bei Überdosierung (z. B. Vitamine/D3 zu häufig)
+* Kosten-Tracking: Preis je Futterart hinterlegen; monatliche Gesamtkosten, Prognose sowie Aufschlüsselung pro Futterart und pro Tier
 * Fütterungsprotokoll mit automatisch erzeugten Titeln („Fütterung 24.07.2026 – Alle Tiere“)
-* Übersichtsseite mit Empfehlung, Auswertung und letzter Fütterung pro Tier
+* Übersichtsseite mit Empfehlung, Auswertung, Nährstoff-Bilanz und letzter Fütterung pro Tier
 
 **Frontend**
 
@@ -70,6 +74,14 @@ Vollständige artspezifische Profile (Genetik-Rechner und Futterplan) gibt es f�
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.6.0 =
+* Neu (Tierverwaltung): Gewichtsverlauf als Chart.js-Graphik mit erwarteter Wachstumskurve pro Art, Anomalie-Erkennung (unter-/übergewichtig, farbige Punkte + Tooltip) und CSV-Export.
+* Neu (Tierverwaltung): erweiterte Stammdaten – KRL, Schwanzlänge, Umfang, Körperkonditions-Score (1–5), Temperament (1–5), Farbintensität, Häutungs-Intervall.
+* Neu (Genetik/Verpaarung): Gelege-Verwaltung 2.0 mit Inkubationstemperatur, unbefruchteten/gestorbenen Eiern, temperaturabhängiger Schlupf-Vorhersage, grafischer Timeline und Schlupfquote inkl. Vergleich zum Durchschnitt.
+* Neu (Futterplanung): Nährstoff-Bilanz (Calcium/D3/Vitamine) mit Toxizitäts-Warnung sowie Kosten-Tracking (Preise je Futterart, Monatskosten, Aufschlüsselung pro Futterart und Tier).
+* Chart.js wird automatisch eingebunden (lokal bundelbar oder via CDN, per Filter `rm_chartjs_src` überschreibbar).
+* Alle bestehenden Daten bleiben gültig; neue Felder sind optional.
 
 = 1.5.0 =
 * Neu: Grüner Leguan (Iguana iguana) als vollständige Art. Genetik und Futterplan sind jetzt artspezifisch.

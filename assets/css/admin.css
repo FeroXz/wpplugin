@@ -372,3 +372,172 @@
 	float: none;
 	margin: 0;
 }
+
+/* ============================================================
+   v1.6 – Gewichts-Graphik, Gelege 2.0, Kosten
+   ============================================================ */
+
+/* Chart-Container */
+.rm-chart-wrap {
+	position: relative;
+	height: 240px;
+	max-width: 760px;
+	margin: 4px 0 12px;
+}
+
+/* Erweiterte Stammdaten */
+.rm-inline-fields label {
+	display: inline-block;
+	margin-right: 14px;
+	color: var(--rm-admin-muted);
+	font-size: 12px;
+}
+
+.rm-inline-fields input {
+	width: 80px;
+	display: block;
+	margin-top: 2px;
+}
+
+/* Schmale Zahlenfelder (Gelege) */
+.rm-clutch-table input.rm-narrow {
+	width: 68px;
+}
+
+/* Gelege-Auswertung */
+.rm-clutch-analytics {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin: 8px 0 4px;
+}
+
+.rm-clutch-card {
+	flex: 1 1 320px;
+	max-width: 460px;
+	background: #fff;
+	border: 1px solid var(--rm-admin-border);
+	border-radius: var(--rm-admin-radius);
+	padding: 12px 14px;
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.rm-clutch-card__head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin-bottom: 8px;
+}
+
+.rm-clutch-predict {
+	margin: 6px 0;
+	font-size: 13px;
+}
+
+.rm-clutch-rate {
+	margin: 8px 0 0;
+	font-size: 13px;
+}
+
+.rm-chip {
+	display: inline-block;
+	padding: 1px 8px;
+	background: var(--rm-admin-surface-2);
+	color: var(--rm-admin-primary-dark);
+	border-radius: var(--rm-admin-radius-pill);
+	font-size: 11px;
+	font-weight: 600;
+}
+
+/* Inkubations-Timeline */
+.rm-timeline {
+	margin: 6px 0;
+}
+
+.rm-timeline__track {
+	position: relative;
+	height: 10px;
+	background: var(--rm-admin-surface-2);
+	border-radius: var(--rm-admin-radius-pill);
+	overflow: hidden;
+}
+
+.rm-timeline__window {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	background: repeating-linear-gradient(45deg, rgba(6, 182, 212, 0.35), rgba(6, 182, 212, 0.35) 4px, rgba(6, 182, 212, 0.15) 4px, rgba(6, 182, 212, 0.15) 8px);
+}
+
+.rm-timeline__progress {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	background: var(--rm-admin-gradient);
+	opacity: 0.85;
+	border-radius: var(--rm-admin-radius-pill);
+}
+
+.rm-timeline__today {
+	position: absolute;
+	top: -2px;
+	bottom: -2px;
+	width: 2px;
+	background: var(--rm-admin-primary-dark);
+}
+
+.rm-timeline__labels {
+	display: flex;
+	justify-content: space-between;
+	font-size: 11px;
+	color: var(--rm-admin-muted);
+	margin-top: 3px;
+}
+
+.rm-timeline__mid {
+	font-weight: 600;
+	color: var(--rm-admin-primary-dark);
+}
+
+/* Toxizitäts-Status (Nährstoff-Bilanz nutzt bestehende ok/low/high-Optik) */
+
+/* Kosten-Tracking */
+.rm-cost-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: 24px;
+	max-width: 900px;
+	margin-top: 8px;
+}
+
+@media (max-width: 782px) {
+	.rm-cost-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+.rm-cost-total {
+	font-size: 15px;
+}
+
+.rm-cost-total strong {
+	font-size: 22px;
+	color: var(--rm-admin-primary-dark);
+}
+
+.rm-cost-list {
+	margin: 4px 0 12px;
+	padding: 0;
+	list-style: none;
+	max-width: 360px;
+}
+
+.rm-cost-list li {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 4px 0;
+	border-bottom: 1px solid var(--rm-admin-border);
+}
