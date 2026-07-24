@@ -26,6 +26,7 @@ class RM_Stats {
 				'post_type'      => 'rm_animal',
 				'posts_per_page' => -1,
 				'post_status'    => 'publish',
+				'meta_query'     => array( RM_Roles::public_meta_query() ),
 			)
 		);
 

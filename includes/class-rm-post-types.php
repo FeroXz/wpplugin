@@ -43,14 +43,16 @@ class RM_Post_Types {
 		register_post_type(
 			'rm_animal',
 			array(
-				'labels'       => $labels,
-				'public'       => true,
-				'show_in_rest' => true,
-				'menu_icon'    => 'dashicons-pets',
+				'labels'        => $labels,
+				'public'        => true,
+				'show_in_rest'  => true,
+				'menu_icon'     => 'dashicons-pets',
 				'menu_position' => 25,
-				'supports'     => array( 'title', 'editor', 'thumbnail' ),
-				'has_archive'  => true,
-				'rewrite'      => array( 'slug' => 'reptilien' ),
+				'supports'      => array( 'title', 'editor', 'thumbnail', 'author' ),
+				'has_archive'   => true,
+				'rewrite'       => array( 'slug' => 'reptilien' ),
+				'capability_type' => 'post',
+				'map_meta_cap'  => true,
 			)
 		);
 	}
@@ -70,11 +72,13 @@ class RM_Post_Types {
 		register_post_type(
 			'rm_pairing',
 			array(
-				'labels'       => $labels,
-				'public'       => false,
-				'show_ui'      => true,
-				'show_in_menu' => 'edit.php?post_type=rm_animal',
-				'supports'     => array( 'title', 'editor' ),
+				'labels'          => $labels,
+				'public'          => false,
+				'show_ui'         => true,
+				'show_in_menu'    => 'edit.php?post_type=rm_animal',
+				'supports'        => array( 'title', 'editor', 'author' ),
+				'capability_type' => 'post',
+				'map_meta_cap'    => true,
 			)
 		);
 	}
@@ -94,11 +98,13 @@ class RM_Post_Types {
 		register_post_type(
 			'rm_feeding_log',
 			array(
-				'labels'       => $labels,
-				'public'       => false,
-				'show_ui'      => true,
-				'show_in_menu' => 'edit.php?post_type=rm_animal',
-				'supports'     => array( 'title' ),
+				'labels'          => $labels,
+				'public'          => false,
+				'show_ui'         => true,
+				'show_in_menu'    => 'edit.php?post_type=rm_animal',
+				'supports'        => array( 'title', 'author' ),
+				'capability_type' => 'post',
+				'map_meta_cap'    => true,
 			)
 		);
 	}
@@ -145,6 +151,11 @@ class RM_Post_Types {
 					'value' => $sex,
 				),
 			);
+		}
+
+		// Züchter sehen nur eigene Tiere.
+		if ( class_exists( 'RM_Roles' ) ) {
+			$args = array_merge( $args, RM_Roles::author_query_args() );
 		}
 
 		return get_posts( $args );

@@ -166,6 +166,7 @@ class RM_Animal_Meta {
 		$svl         = get_post_meta( $post->ID, '_rm_svl', true );
 		$tail        = get_post_meta( $post->ID, '_rm_tail', true );
 		$girth       = get_post_meta( $post->ID, '_rm_girth', true );
+		$is_public   = '0' !== (string) get_post_meta( $post->ID, '_rm_public', true );
 		?>
 		<table class="form-table rm-form-table">
 			<tr>
@@ -176,6 +177,16 @@ class RM_Animal_Meta {
 							<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $sex, $value ); ?>><?php echo esc_html( $label ); ?></option>
 						<?php endforeach; ?>
 					</select>
+				</td>
+			</tr>
+			<tr>
+				<th><?php esc_html_e( 'Sichtbarkeit', 'reptilien-manager' ); ?></th>
+				<td>
+					<label>
+						<input type="checkbox" name="rm_public" value="1" <?php checked( $is_public ); ?> />
+						<?php esc_html_e( 'Öffentlich im Frontend anzeigen', 'reptilien-manager' ); ?>
+					</label>
+					<p class="description"><?php esc_html_e( 'Nur öffentliche Tiere erscheinen in den Shortcodes (Liste, Profil, Dashboard). Der Beitrag selbst bleibt davon unberührt.', 'reptilien-manager' ); ?></p>
 				</td>
 			</tr>
 			<tr>
@@ -482,6 +493,9 @@ class RM_Animal_Meta {
 
 		$food_notes = isset( $_POST['rm_food_notes'] ) ? sanitize_textarea_field( wp_unslash( $_POST['rm_food_notes'] ) ) : '';
 		update_post_meta( $post_id, '_rm_food_notes', $food_notes );
+
+		// Sichtbarkeit (Checkbox nicht gesetzt = privat).
+		update_post_meta( $post_id, '_rm_public', isset( $_POST['rm_public'] ) ? '1' : '0' );
 
 		// Abstammung (eigene Nachzucht).
 		$parent_pairing = isset( $_POST['rm_parent_pairing'] ) ? absint( $_POST['rm_parent_pairing'] ) : 0;

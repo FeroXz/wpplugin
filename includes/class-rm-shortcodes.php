@@ -167,14 +167,20 @@ class RM_Shortcodes {
 			'order'          => 'ASC',
 		);
 
+		// Als privat markierte Tiere im Frontend ausschließen.
+		$meta_query = array( RM_Roles::public_meta_query() );
+
 		if ( in_array( $filters['sex'], array( 'male', 'female' ), true ) ) {
-			$args['meta_query'] = array(
-				array(
-					'key'   => '_rm_sex',
-					'value' => $filters['sex'],
-				),
+			$meta_query[] = array(
+				'key'   => '_rm_sex',
+				'value' => $filters['sex'],
 			);
 		}
+
+		if ( count( $meta_query ) > 1 ) {
+			$meta_query['relation'] = 'AND';
+		}
+		$args['meta_query'] = $meta_query;
 
 		if ( $filters['species'] ) {
 			$args['tax_query'] = array(
@@ -405,7 +411,7 @@ class RM_Shortcodes {
 		$atts = shortcode_atts( array( 'id' => 0 ), $atts, 'reptil' );
 		$animal = get_post( absint( $atts['id'] ) );
 
-		if ( ! $animal || 'rm_animal' !== $animal->post_type || 'publish' !== $animal->post_status ) {
+		if ( ! $animal || 'rm_animal' !== $animal->post_type || 'publish' !== $animal->post_status || ! RM_Roles::is_public( $animal->ID ) ) {
 			return '<p class="rm-notice">' . esc_html__( 'Tier nicht gefunden.', 'reptilien-manager' ) . '</p>';
 		}
 

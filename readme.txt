@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.10.0
+Stable tag: 1.11.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,12 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
 * iCal-Export der vorhergesagten Schlupftermine (120 Tage) zum Import in Kalender-Apps
 * Testnachricht-Button zur Prüfung der E-Mail-Konfiguration
 
+**Rollen, Sichtbarkeit & Datenschutz**
+
+* Eigene Rolle „Reptilien-Züchter“: sieht und verwaltet ausschließlich die eigenen Tiere, Verpaarungen und Fütterungen (Backend-Listen und Plugin-Auswertungen sind autoren-beschränkt)
+* Öffentlich/Privat-Schalter pro Tier: nur öffentliche Tiere erscheinen in den Frontend-Shortcodes (Liste, Profil, Dashboard)
+* DSGVO: automatischer Textbaustein für die Datenschutzerklärung (welche Daten gespeichert werden)
+
 == Installation ==
 
 1. Plugin-Ordner in `wp-content/plugins/` hochladen oder als ZIP installieren.
@@ -95,6 +101,12 @@ Vollständige artspezifische Profile (Genetik-Rechner und Futterplan) gibt es f�
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.11.0 =
+* Neu: Rolle „Reptilien-Züchter“ – verwaltet nur eigene Tiere/Verpaarungen/Fütterungen. Die Inhaltstypen nutzen jetzt ownership-basierte Rechte (map_meta_cap), Backend-Listen und Plugin-Abfragen sind für beschränkte Nutzer autoren-gefiltert.
+* Neu: Öffentlich/Privat-Schalter pro Tier – als privat markierte Tiere erscheinen nicht mehr in den Frontend-Shortcodes (Liste, Profil, Dashboard).
+* Neu: DSGVO-Textbaustein für die Datenschutzerklärung.
+* Deinstallation entfernt die Rolle, den geplanten Cron und die Plugin-Optionen (Bestandsdaten bleiben erhalten).
 
 = 1.10.0 =
 * Neu: Seite „Benachrichtigungen“ mit E-Mail-Einstellungen (Empfänger, Schlupf-Vorlauf, Fütterungsschwelle, Monatsbericht).

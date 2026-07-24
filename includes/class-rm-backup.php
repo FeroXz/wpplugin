@@ -44,6 +44,7 @@ class RM_Backup {
 			'_rm_length', '_rm_food_notes', '_rm_genes', '_rm_weights', '_rm_gallery',
 			'_rm_parent_pairing', '_rm_clutch', '_rm_bcs', '_rm_temperament',
 			'_rm_color', '_rm_shed_interval', '_rm_svl', '_rm_tail', '_rm_girth',
+			'_rm_public',
 		);
 		$pairing_meta_keys = array(
 			'_rm_sire', '_rm_dam', '_rm_pairing_date', '_rm_incubation_temp', '_rm_clutches',
