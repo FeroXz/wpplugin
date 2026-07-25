@@ -76,16 +76,17 @@ class RM_PWA_Assets {
 			RM_PLUGIN_URL . 'pwa/pages/quick-entry.html',
 			RM_PLUGIN_URL . 'pwa/icons/icon-192.png',
 			RM_PLUGIN_URL . 'pwa/icons/icon-512.png',
-			home_url( self::MANIFEST_SUFFIX ),
 		);
 
 		$replacements = array(
-			'__RM_PWA_QUEUE_URL__'   => $queue_url,
-			'__RM_PWA_VERSION__'     => defined( 'RM_VERSION' ) ? RM_VERSION : '1.0',
-			'__RM_PWA_PRECACHE__'    => wp_json_encode( array_values( $precache ) ),
-			'__RM_PWA_API_MARKER__'  => '/' . rest_get_url_prefix() . '/' . RM_REST_Controller::NAMESPACE . '/',
-			'__RM_PWA_ICON_192__'    => RM_PLUGIN_URL . 'pwa/icons/icon-192.png',
-			'__RM_PWA_START_URL__'   => self::start_url(),
+			'__RM_PWA_QUEUE_URL__'     => $queue_url,
+			'__RM_PWA_VERSION__'       => defined( 'RM_VERSION' ) ? RM_VERSION : '1.0',
+			'__RM_PWA_PRECACHE__'      => wp_json_encode( array_values( $precache ) ),
+			'__RM_PWA_API_MARKER__'    => '/' . rest_get_url_prefix() . '/' . RM_REST_Controller::NAMESPACE . '/',
+			// Nur Assets unterhalb dieses Pfads werden Cache-First bedient.
+			'__RM_PWA_ASSET_PREFIX__'  => (string) wp_parse_url( RM_PLUGIN_URL . 'pwa/', PHP_URL_PATH ),
+			'__RM_PWA_ICON_192__'      => RM_PLUGIN_URL . 'pwa/icons/icon-192.png',
+			'__RM_PWA_START_URL__'     => self::start_url(),
 		);
 
 		$contents = file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents

@@ -365,6 +365,7 @@ class RM_Backup {
 
 			if ( ! empty( $animal['species'] ) ) {
 				wp_set_object_terms( $new_id, array_map( 'sanitize_text_field', (array) $animal['species'] ), 'rm_species' );
+				RM_Species::forget_animal( $new_id );
 			}
 		}
 
@@ -530,6 +531,7 @@ class RM_Backup {
 			$species_key  = $animal['species'] ? RM_Species::key_from_term_names( array( $animal['species'] ) ) : RM_Species::DEFAULT_KEY;
 			$species_name = RM_Species::label( $species_key );
 			wp_set_object_terms( $new_id, $species_name, 'rm_species' );
+			RM_Species::forget_animal( $new_id );
 		}
 
 		fclose( $handle );

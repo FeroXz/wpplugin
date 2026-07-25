@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.19.0
+Stable tag: 1.19.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,6 +130,12 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
       -d '{"animal_ids":[123],"foods":["heimchen"],"amount":"10 Heimchen"}' \
       "https://deine-seite.test/wp-json/reptilien/v1/feedings"
 
+`POST /wp-json/reptilien/v1/animals/{id}/photo` – Profilfoto setzen (multipart, Feldname `photo`; ändert ausschließlich das Foto)
+
+    curl -X POST -H "X-Reptilien-API-Key: DEIN_KEY" \
+      -F "photo=@tier.jpg" \
+      "https://deine-seite.test/wp-json/reptilien/v1/animals/123/photo"
+
 `GET /wp-json/reptilien/v1/stats` – Bestands-Statistik
 
     curl -H "X-Reptilien-API-Key: DEIN_KEY" \
@@ -204,6 +210,14 @@ Vollständige artspezifische Profile (Genetik-Rechner und Futterplan) gibt es f�
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.19.1 =
+* Fix (PWA, kritisch): Der Foto-Upload aus der App lief über das vollständige Speicherformular und setzte dabei alle nicht mitgesendeten Felder zurück – Geschlecht, Schlupfdatum, Herkunft, Länge und die komplette Genetik gingen verloren, das Tier wurde auf „privat“ gestellt. Der Upload nutzt jetzt den neuen, schmalen Endpunkt POST /wp-json/reptilien/v1/animals/{id}/photo, der ausschließlich das Profilfoto setzt.
+* Fix (PWA, kritisch): Der Service Worker hat jede gleichnamige Seite der Website per Cache-First ausgeliefert – auch normale Seiten, wp-admin und wp-login, die dadurch dauerhaft veraltet erschienen. Gecacht werden jetzt nur noch die Plugin-eigenen statischen Assets.
+* Fix (PWA): Offline erfasste Wiegungen wurden mit dem Datum der Synchronisierung statt dem der Erfassung gespeichert. Das Erfassungsdatum wird jetzt als weight_date mitgeschickt; Wiegungen werden zudem chronologisch sortiert, sodass „letztes Gewicht“ auch bei nachgetragenen Werten stimmt.
+* Fix (PWA): Ein dauerhaft ungültiger Eintrag in der Offline-Warteschlange (z. B. inzwischen gelöschtes Tier) blockierte die gesamte Synchronisierung endlos. Solche Einträge (HTTP 4xx) werden jetzt verworfen und gemeldet, vorübergehende Fehler weiterhin mit Backoff wiederholt.
+* Fix (PWA): Ein offline aufgenommenes Foto wurde stillschweigend verworfen; es wird jetzt zusammen mit der Wiegung in der Warteschlange gespeichert und später mit übertragen. Doppelte Ereignis-Listener in der Detailansicht entfernt.
+* Performance: RM_Species::key_for_animal() nutzt jetzt den Objekt-Term-Cache (get_the_terms()) statt der ungecachten Primitive wp_get_post_terms() und merkt sich das Ergebnis je Request. Auswertungen über den Gesamtbestand (Dashboard, Statistik, Backup, Zuchtempfehlungen) sparen damit rund zwei Datenbankabfragen pro Tier.
 
 = 1.19.0 =
 * Neu: Progressive Web App über den Shortcode [reptilien-pwa] – installierbar auf dem Home-Bildschirm (Android/iOS), Mobile-First-Oberfläche mit Tier-Liste, Tier-Detail (inkl. Gewichtsverlauf-Chart), Quick-Weight- (mit optionalem Kamera-Foto) und Quick-Feeding-Formular sowie einem QR-Code-Scanner zum direkten Öffnen eines Tieres.

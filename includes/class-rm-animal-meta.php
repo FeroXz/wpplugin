@@ -676,6 +676,7 @@ class RM_Animal_Meta {
 			$term_id = absint( $_POST['rm_species'] );
 			if ( $term_id && term_exists( $term_id, 'rm_species' ) ) {
 				wp_set_object_terms( $post_id, array( $term_id ), 'rm_species' );
+				RM_Species::forget_animal( $post_id );
 			}
 		}
 
@@ -685,6 +686,7 @@ class RM_Animal_Meta {
 			$default = term_exists( 'Bartagame (Pogona vitticeps)', 'rm_species' );
 			if ( $default ) {
 				wp_set_object_terms( $post_id, (int) $default['term_id'], 'rm_species' );
+				RM_Species::forget_animal( $post_id );
 			}
 		}
 	}

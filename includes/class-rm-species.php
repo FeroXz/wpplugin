@@ -19,6 +19,13 @@ class RM_Species {
 	const DEFAULT_KEY = 'pogona';
 
 	/**
+	 * Request-lokales Memo für key_for_animal() (Tier-ID => Art-Schlüssel).
+	 *
+	 * @var array<int,string>
+	 */
+	private static $key_memo = array();
+
+	/**
 	 * Bekannte Arten.
 	 *
 	 * @return array[] Schlüssel => { label, term_name, diet, keywords }.
@@ -145,14 +152,46 @@ class RM_Species {
 	/**
 	 * Art-Schlüssel eines Tieres anhand seiner zugeordneten Taxonomie.
 	 *
+	 * Nutzt bewusst get_the_terms() statt wp_get_post_terms(): Letzteres ist
+	 * die ungecachte Primitive und würde in Schleifen über viele Tiere (Stats,
+	 * Dashboard, Backup) je Tier eine eigene Abfrage auslösen. get_the_terms()
+	 * bedient sich am Objekt-Term-Cache, den WP_Query für alle Beiträge einer
+	 * Abfrage in einem Rutsch füllt. Zusätzlich merkt sich ein Static-Memo das
+	 * Ergebnis je Request, da einige Aufrufer (z. B. animal_morph_label())
+	 * mehrfach pro Tier fragen.
+	 *
 	 * @param int $animal_id Beitrags-ID des Tieres.
 	 * @return string
 	 */
 	public static function key_for_animal( $animal_id ) {
-		$names = wp_get_post_terms( $animal_id, 'rm_species', array( 'fields' => 'names' ) );
-		if ( is_wp_error( $names ) || ! $names ) {
-			return self::DEFAULT_KEY;
+		$animal_id = (int) $animal_id;
+
+		if ( isset( self::$key_memo[ $animal_id ] ) ) {
+			return self::$key_memo[ $animal_id ];
 		}
-		return self::key_from_term_names( $names );
+
+		$terms = get_the_terms( $animal_id, 'rm_species' );
+		$key   = self::DEFAULT_KEY;
+
+		if ( ! is_wp_error( $terms ) && $terms ) {
+			$key = self::key_from_term_names( wp_list_pluck( $terms, 'name' ) );
+		}
+
+		self::$key_memo[ $animal_id ] = $key;
+		return $key;
+	}
+
+	/**
+	 * Verwirft das Memo – aufzurufen, sobald sich die Art-Zuordnung eines
+	 * Tieres innerhalb desselben Requests ändert (siehe Speichern-Routinen).
+	 *
+	 * @param int $animal_id Beitrags-ID, oder 0 für alle.
+	 */
+	public static function forget_animal( $animal_id = 0 ) {
+		if ( $animal_id ) {
+			unset( self::$key_memo[ (int) $animal_id ] );
+		} else {
+			self::$key_memo = array();
+		}
 	}
 }

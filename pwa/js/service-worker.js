@@ -21,6 +21,7 @@ var RM_PWA_VERSION = '__RM_PWA_VERSION__';
 var STATIC_CACHE = 'rm-pwa-static-' + RM_PWA_VERSION;
 var PRECACHE_URLS = __RM_PWA_PRECACHE__;
 var API_MARKER = '__RM_PWA_API_MARKER__'; // z. B. "/wp-json/reptilien/v1/"
+var ASSET_PREFIX = '__RM_PWA_ASSET_PREFIX__'; // Pfad des pwa/-Verzeichnisses.
 
 self.addEventListener( 'install', function ( event ) {
 	event.waitUntil(
@@ -77,10 +78,30 @@ self.addEventListener( 'fetch', function ( event ) {
 		return;
 	}
 
-	if ( url.origin === self.location.origin ) {
+	if ( isCacheableAsset( url ) ) {
 		event.respondWith( cacheFirstAsset( request ) );
 	}
+
+	// Alles Übrige (normale Seiten, wp-admin, wp-login, fremde Hosts) bleibt
+	// bewusst unangetastet und geht direkt ans Netzwerk – sonst würden
+	// Cache-First-Antworten dauerhaft veraltete Seiten ausliefern.
 } );
+
+/**
+ * Nur eigene Plugin-Assets mit statischer Dateiendung werden gecacht.
+ *
+ * @param {URL} url Angefragte URL.
+ * @return {boolean}
+ */
+function isCacheableAsset( url ) {
+	if ( url.origin !== self.location.origin ) {
+		return false;
+	}
+	if ( 0 !== url.pathname.indexOf( ASSET_PREFIX ) ) {
+		return false;
+	}
+	return /\.(css|js|html|png|jpg|jpeg|svg|webp|woff2?)$/i.test( url.pathname );
+}
 
 /**
  * Cache-First für statische Assets: liefert den Cache-Treffer sofort und

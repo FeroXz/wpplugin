@@ -806,6 +806,7 @@ class RM_Pairing {
 					$terms = wp_get_post_terms( $dam, 'rm_species', array( 'fields' => 'ids' ) );
 					if ( ! is_wp_error( $terms ) && $terms ) {
 						wp_set_object_terms( $child_id, $terms, 'rm_species' );
+						RM_Species::forget_animal( $child_id );
 					}
 				}
 			}

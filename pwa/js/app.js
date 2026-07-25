@@ -107,17 +107,20 @@
 
 	var syncing = false;
 	var syncBackoff = 5000;
+	var droppedItems = [];
 
 	/**
-	 * Synchronisiert die Offline-Queue FIFO mit der REST-API. Bricht beim
-	 * ersten Fehler ab (z. B. Verbindung erneut weg) und plant einen
-	 * erneuten Versuch mit steigendem Backoff.
+	 * Synchronisiert die Offline-Queue FIFO mit der REST-API. Dauerhaft
+	 * ungültige Einträge (4xx) werden verworfen, vorübergehende Fehler
+	 * (Netzwerk, 5xx) brechen den Lauf ab und werden mit steigendem Backoff
+	 * erneut versucht.
 	 */
 	function trySync() {
 		if ( syncing || ! navigator.onLine || ! window.RMOfflineQueue ) {
 			return;
 		}
 		syncing = true;
+		droppedItems = [];
 		var btn = $( '#rm-pwa-sync-btn' );
 		if ( btn ) { btn.classList.add( 'is-syncing' ); }
 
@@ -127,11 +130,15 @@
 				syncing = false;
 				if ( btn ) { btn.classList.remove( 'is-syncing' ); }
 				refreshSyncPill();
+
 				if ( synced > 0 ) {
 					toast( synced + ' Eintrag(e) synchronisiert.' );
 					showLocalNotification( 'Reptilien Manager', synced + ' Eintrag(e) synchronisiert.' );
 					syncBackoff = 5000;
 					refreshAnimalsFromNetwork();
+				}
+				if ( droppedItems.length ) {
+					toast( droppedItems.length + ' Eintrag(e) konnten nicht übernommen werden und wurden verworfen.' );
 				}
 			} )
 			.catch( function () {
@@ -151,15 +158,37 @@
 
 		return dispatchQueueItem( item )
 			.then( function () { return window.RMOfflineQueue.markSynced( item.id ); } )
-			.then( function () { return syncNext( items, index + 1, syncedCount + 1 ); } );
+			.then( function () { return syncNext( items, index + 1, syncedCount + 1 ); } )
+			.catch( function ( err ) {
+				// 4xx heißt: der Eintrag wird auch beim nächsten Versuch
+				// scheitern (Tier gelöscht, ungültige Daten). Solche Einträge
+				// werden verworfen, damit ein einzelner „vergifteter“ Eintrag
+				// nicht dauerhaft die gesamte Warteschlange blockiert.
+				// Netzwerk-/Serverfehler (kein Status, 5xx) werden erneut
+				// versucht, indem der Fehler nach oben durchgereicht wird.
+				if ( err && err.status >= 400 && err.status < 500 ) {
+					droppedItems.push( item );
+					return window.RMOfflineQueue.markSynced( item.id ).then( function () {
+						return syncNext( items, index + 1, syncedCount );
+					} );
+				}
+				throw err;
+			} );
 	}
 
 	function dispatchQueueItem( item ) {
 		switch ( item.action ) {
 			case 'create_weight':
+				// weight_date erhält das Erfassungsdatum, auch wenn erst
+				// Tage später synchronisiert wird.
 				return api( '/animals/' + item.animal_id, {
 					method: 'PUT',
-					body: JSON.stringify( { weight: item.payload.weight } )
+					body: JSON.stringify( {
+						weight: item.payload.weight,
+						weight_date: item.payload.date
+					} )
+				} ).then( function () {
+					return item.payload.photo ? uploadPhoto( item.animal_id, item.payload.photo ) : null;
 				} );
 			case 'update_animal':
 				return api( '/animals/' + item.animal_id, {
@@ -372,22 +401,6 @@
 		} );
 
 		renderWeightChart( animal );
-
-		$$( '.rm-pwa-tab', root ).forEach( function ( tab ) {
-			tab.addEventListener( 'click', function () {
-				$$( '.rm-pwa-tab', root ).forEach( function ( t ) { t.classList.remove( 'is-active' ); } );
-				$$( '.rm-pwa-tab-panel', root ).forEach( function ( p ) { p.classList.remove( 'is-active' ); } );
-				tab.classList.add( 'is-active' );
-				root.querySelector( '[data-panel="' + tab.dataset.tab + '"]' ).classList.add( 'is-active' );
-			} );
-		} );
-
-		$$( '[data-action="open-full-site"]', root ).forEach( function ( link ) {
-			link.addEventListener( 'click', function ( event ) {
-				event.preventDefault();
-				window.open( config.fullSiteUrl, '_blank', 'noopener' );
-			} );
-		} );
 	}
 
 	function renderWeightChart( animal ) {
@@ -424,8 +437,32 @@
 		} );
 	}
 
+	/**
+	 * Bindet die Ereignisse der Detailansicht. Wird bewusst genau einmal je
+	 * gerendertem Template aufgerufen – fillDetail() läuft zweimal (Cache,
+	 * dann Server) und würde sonst doppelte Listener anhängen.
+	 *
+	 * @param {Object} animal Tier-Datensatz.
+	 */
 	function bindDetailActions( animal ) {
 		var root = $( '.rm-pwa-detail-view' );
+
+		$$( '.rm-pwa-tab', root ).forEach( function ( tab ) {
+			tab.addEventListener( 'click', function () {
+				$$( '.rm-pwa-tab', root ).forEach( function ( t ) { t.classList.remove( 'is-active' ); } );
+				$$( '.rm-pwa-tab-panel', root ).forEach( function ( p ) { p.classList.remove( 'is-active' ); } );
+				tab.classList.add( 'is-active' );
+				root.querySelector( '[data-panel="' + tab.dataset.tab + '"]' ).classList.add( 'is-active' );
+			} );
+		} );
+
+		$$( '[data-action="open-full-site"]', root ).forEach( function ( link ) {
+			link.addEventListener( 'click', function ( event ) {
+				event.preventDefault();
+				window.open( config.fullSiteUrl, '_blank', 'noopener' );
+			} );
+		} );
+
 		$( '[data-action="back"]', root ).addEventListener( 'click', function () { navigate( 'animals' ); } );
 		$$( '[data-action="weight"]', root ).forEach( function ( btn ) {
 			btn.addEventListener( 'click', function () { openQuickEntry( 'weight', animal.id ); } );
@@ -615,25 +652,22 @@
 		var photo = capturedPhotoBlob;
 		capturedPhotoBlob = null;
 
+		// IndexedDB speichert Blobs mit, sodass ein offline aufgenommenes Foto
+		// beim späteren Sync unverändert mitgeschickt wird.
 		var proceed = navigator.onLine
-			? api( '/animals/' + animalId, { method: 'PUT', body: JSON.stringify( { weight: weight } ) } )
-			: window.RMOfflineQueue.enqueue( 'create_weight', animalId, { weight: weight, date: date } );
+			? api( '/animals/' + animalId, {
+				method: 'PUT',
+				body: JSON.stringify( { weight: weight, weight_date: date } )
+			} ).then( function () {
+				return photo ? uploadPhoto( animalId, photo ) : null;
+			} )
+			: window.RMOfflineQueue.enqueue( 'create_weight', animalId, {
+				weight: weight,
+				date: date,
+				photo: photo || null
+			} );
 
 		proceed
-			.then( function () {
-				if ( photo && navigator.onLine ) {
-					return uploadPhoto( animalId, photo );
-				}
-				if ( photo ) {
-					return window.RMOfflineQueue.enqueue( 'update_photo', animalId, { note: 'Foto wartet auf Synchronisierung.' } )
-						.then( function () {
-							// Blob separat merken, da IndexedDB "payload" hier nur Metadaten hält;
-							// vereinfachtes Verhalten: Foto wird beim nächsten Online-Speichervorgang
-							// erneut über die Kamera aufgenommen, falls die Verbindung fehlt.
-							toast( 'Hinweis: Foto konnte offline nicht mitgeschickt werden.' );
-						} );
-				}
-			} )
 			.then( function () {
 				closeModal();
 				toast( navigator.onLine ? 'Gewicht gespeichert!' : 'Gewicht offline gespeichert – wird synchronisiert.' );
@@ -652,17 +686,37 @@
 			} );
 	}
 
+	/**
+	 * Lädt ein Foto als Profilbild hoch.
+	 *
+	 * Nutzt den schmalen REST-Endpunkt /animals/{id}/photo statt des
+	 * vollständigen Speicherformulars – letzteres würde alle nicht
+	 * mitgesendeten Felder (Genetik, Sichtbarkeit …) zurücksetzen. Zudem
+	 * hängt die API-Key-Authentifizierung nicht an einem Nonce, der in einer
+	 * lang geöffneten App längst abgelaufen sein kann.
+	 *
+	 * @param {number} animalId Tier-ID.
+	 * @param {Blob}   blob     Bilddaten.
+	 * @return {Promise<Response>}
+	 */
 	function uploadPhoto( animalId, blob ) {
-		var animal = state.animals.filter( function ( a ) { return Number( a.id ) === animalId; } )[ 0 ];
 		var data = new FormData();
-		data.append( 'action', 'rm_fe_save_animal' );
-		data.append( 'rm_animal_id', animalId );
-		data.append( 'rm_name', animal ? animal.name : '' );
-		data.append( 'rm_redirect', window.location.href );
-		data.append( 'rm_fe_nonce', config.feNonce );
-		data.append( 'rm_photo', blob, 'quick-weight.jpg' );
+		data.append( 'photo', blob, 'quick-weight.jpg' );
 
-		return fetch( config.adminPostUrl, { method: 'POST', body: data, credentials: 'same-origin' } );
+		return fetch( config.apiBase + '/animals/' + animalId + '/photo', {
+			method: 'POST',
+			headers: { 'X-Reptilien-API-Key': config.apiKey },
+			body: data
+		} ).then( function ( res ) {
+			if ( ! res.ok ) {
+				var err = new Error( 'Foto-Upload fehlgeschlagen (HTTP ' + res.status + ').' );
+				// status mitgeben, damit die Sync-Logik dauerhafte (4xx) von
+				// vorübergehenden Fehlern unterscheiden kann.
+				err.status = res.status;
+				throw err;
+			}
+			return res;
+		} );
 	}
 
 	function handleFeedingSubmit( form ) {

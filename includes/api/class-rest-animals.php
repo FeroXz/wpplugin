@@ -101,6 +101,26 @@ class RM_REST_Animals extends RM_REST_Controller {
 
 		register_rest_route(
 			self::NAMESPACE,
+			'/animals/(?P<id>\d+)/photo',
+			array(
+				'summary' => __( 'Profilfoto eines Tieres hochladen.', 'reptilien-manager' ),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( __CLASS__, 'upload_photo' ),
+					'permission_callback' => array( __CLASS__, 'permission_write' ),
+					'args'                => array(
+						'id' => array(
+							'type'        => 'integer',
+							'required'    => true,
+							'description' => __( 'Beitrags-ID des Tieres.', 'reptilien-manager' ),
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
 			'/stats',
 			array(
 				'summary' => __( 'Bestands-Statistik (eigene Tiere bzw. alle mit edit_others_posts).', 'reptilien-manager' ),
@@ -110,6 +130,59 @@ class RM_REST_Animals extends RM_REST_Controller {
 					'permission_callback' => array( __CLASS__, 'permission_read' ),
 				),
 			)
+		);
+	}
+
+	/**
+	 * POST /animals/{id}/photo – setzt ausschließlich das Profilfoto.
+	 *
+	 * Bewusst ein eigener, schmaler Endpunkt: das Wiederverwenden des
+	 * vollständigen Speicherformulars würde alle nicht mitgesendeten Felder
+	 * (Geschlecht, Genetik, Sichtbarkeit …) zurücksetzen.
+	 *
+	 * @param WP_REST_Request $request Anfrage.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function upload_photo( $request ) {
+		$animal = get_post( (int) $request->get_param( 'id' ) );
+
+		if ( ! $animal || 'rm_animal' !== $animal->post_type ) {
+			return self::error( 'rm_animal_not_found', __( 'Tier nicht gefunden.', 'reptilien-manager' ), 404 );
+		}
+		if ( ! self::can_manage( $animal, 'rm_animal' ) ) {
+			return self::error( 'rm_forbidden', __( 'Keine Berechtigung für dieses Tier.', 'reptilien-manager' ), 403 );
+		}
+		if ( ! current_user_can( 'upload_files' ) ) {
+			return self::error( 'rm_forbidden', __( 'Keine Berechtigung zum Hochladen von Dateien.', 'reptilien-manager' ), 403 );
+		}
+
+		$files = $request->get_file_params();
+		if ( empty( $files['photo'] ) ) {
+			return self::error( 'rm_no_file', __( 'Keine Datei übermittelt (Feldname: photo).', 'reptilien-manager' ), 400 );
+		}
+
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/media.php';
+
+		$attachment_id = media_handle_upload( 'photo', $animal->ID );
+		if ( is_wp_error( $attachment_id ) ) {
+			return self::error( 'rm_upload_failed', $attachment_id->get_error_message(), 400 );
+		}
+		if ( ! wp_attachment_is_image( $attachment_id ) ) {
+			wp_delete_attachment( $attachment_id, true );
+			return self::error( 'rm_not_an_image', __( 'Nur Bilddateien sind erlaubt.', 'reptilien-manager' ), 400 );
+		}
+
+		set_post_thumbnail( $animal->ID, $attachment_id );
+
+		return new WP_REST_Response(
+			array(
+				'id'            => $animal->ID,
+				'attachment_id' => (int) $attachment_id,
+				'photo'         => wp_get_attachment_image_url( $attachment_id, 'medium' ),
+			),
+			201
 		);
 	}
 
@@ -718,6 +791,7 @@ class RM_REST_Animals extends RM_REST_Controller {
 				$term = term_exists( $profiles[ $species_key ]['term_name'], 'rm_species' );
 				if ( $term ) {
 					wp_set_object_terms( $animal_id, array( (int) $term['term_id'] ), 'rm_species' );
+					RM_Species::forget_animal( $animal_id );
 				}
 			}
 		}
@@ -746,14 +820,47 @@ class RM_REST_Animals extends RM_REST_Controller {
 		}
 
 		if ( array_key_exists( 'weight', $params ) && is_numeric( $params['weight'] ) ) {
+			// Offline erfasste Wiegungen werden ggf. erst Tage später
+			// synchronisiert – dann zählt das mitgeschickte Erfassungsdatum,
+			// nicht der Zeitpunkt der Übertragung.
+			$weight_date = '';
+			if ( ! empty( $params['weight_date'] ) ) {
+				$candidate = sanitize_text_field( $params['weight_date'] );
+				if ( strtotime( $candidate ) ) {
+					$weight_date = gmdate( 'Y-m-d', strtotime( $candidate ) );
+				}
+			}
+			if ( ! $weight_date ) {
+				$weight_date = current_time( 'Y-m-d' );
+			}
+
 			$weights   = get_post_meta( $animal_id, '_rm_weights', true );
 			$weights   = is_array( $weights ) ? $weights : array();
 			$weights[] = array(
-				'date'  => current_time( 'Y-m-d' ),
+				'date'  => $weight_date,
 				'grams' => (int) $params['weight'],
 			);
-			update_post_meta( $animal_id, '_rm_weights', $weights );
+			update_post_meta( $animal_id, '_rm_weights', self::sort_weights( $weights ) );
 		}
+	}
+
+	/**
+	 * Sortiert Wiegungen chronologisch, damit „letzte Wiegung“ (end()) auch
+	 * bei nachträglich eingetragenen Werten die neueste bleibt.
+	 *
+	 * @param array $weights Wiegungen.
+	 * @return array
+	 */
+	private static function sort_weights( $weights ) {
+		usort(
+			$weights,
+			static function ( $a, $b ) {
+				$ta = isset( $a['date'] ) ? strtotime( $a['date'] ) : 0;
+				$tb = isset( $b['date'] ) ? strtotime( $b['date'] ) : 0;
+				return $ta <=> $tb;
+			}
+		);
+		return array_values( $weights );
 	}
 
 	/**

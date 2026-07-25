@@ -679,6 +679,7 @@ class RM_Frontend {
 			$term_id = absint( $_POST['rm_species'] );
 			if ( $term_id && term_exists( $term_id, 'rm_species' ) ) {
 				wp_set_object_terms( $animal_id, array( $term_id ), 'rm_species' );
+				RM_Species::forget_animal( $animal_id );
 			}
 		}
 

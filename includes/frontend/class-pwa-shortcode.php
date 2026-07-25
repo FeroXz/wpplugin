@@ -152,8 +152,6 @@ class RM_PWA_Shortcode {
 				 */
 				'jsQrSrc'      => apply_filters( 'rm_pwa_jsqr_src', 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js' ),
 				'fullSiteUrl'  => admin_url( 'edit.php?post_type=rm_animal' ),
-				'adminPostUrl' => admin_url( 'admin-post.php' ),
-				'feNonce'      => wp_create_nonce( 'rm_fe_save_animal' ),
 				'foodTypes'    => class_exists( 'RM_Feeding' ) ? RM_Feeding::food_types() : array(),
 				'supplements'  => class_exists( 'RM_Feeding' ) ? RM_Feeding::supplements() : array(),
 			)
