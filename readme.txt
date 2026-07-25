@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.17.0
+Stable tag: 1.18.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -68,6 +68,71 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
 * Tierarzt-Kontakt-Verzeichnis: Name, Telefon, E-Mail und Notizen hinterlegen; das Feld „Tierarzt-Kontakt“ am Eintrag schlägt gespeicherte Kontakte automatisch vor
 * Trend-Auswertung ist 1 Stunde im Objekt-Cache gehalten (nur mit persistentem Objekt-Cache-Plugin wirksam über mehrere Requests hinweg)
 
+**REST-API**
+
+* Vollständige REST-API unter `/wp-json/reptilien/v1/` – Tiere (Liste, Detail, Anlegen, Aktualisieren, Löschen), Verpaarungen (Liste), Genetik-Rechner (Punnett-Kreuzung), Fütterungen (Liste) und Bestands-Statistik
+* Authentifizierung per API-Key (Header `X-Reptilien-API-Key`), verwaltbar unter „Reptilien → API“ (erzeugen/widerrufen); ein gültiger Key wirkt wie ein Login des zugehörigen Nutzers – dieselben Berechtigungen wie im Backend gelten 1:1 (eigene Tiere, fremde nur mit `edit_others_posts`)
+* Rate-Limiting: 60 Anfragen pro Minute und API-Key (HTTP 429 bei Überschreitung)
+* ETag-Unterstützung bei allen Lese-Endpunkten (`If-None-Match` → 304 Not Modified bei unverändertem Inhalt)
+* CORS deaktiviert per Standard, aktivierbar über den Filter `rm_api_cors_allowed_origin`
+* Fehlerantworten einheitlich als `{"code": "...", "message": "...", "data": {"status": ...}}`
+* Selbst-dokumentierend: `GET /wp-json/reptilien/v1/openapi.json` liefert die vollständige OpenAPI-3.0-Beschreibung aller Endpunkte (kein API-Key nötig)
+* Ändert nichts an der bestehenden Backend-/Frontend-Verwaltung – die API ist ein zusätzlicher, vollständig optionaler Zugang zu denselben Daten
+
+= REST-API: Endpunkte =
+
+`GET /wp-json/reptilien/v1/animals?per_page=20&page=1` – paginierte Liste eigener Tiere (bzw. aller mit `edit_others_posts`)
+
+    curl -H "X-Reptilien-API-Key: DEIN_KEY" \
+      "https://deine-seite.test/wp-json/reptilien/v1/animals?per_page=20&page=1"
+
+`GET /wp-json/reptilien/v1/animals/{id}` – Detailansicht inkl. Genetik
+
+    curl -H "X-Reptilien-API-Key: DEIN_KEY" \
+      "https://deine-seite.test/wp-json/reptilien/v1/animals/123"
+
+`POST /wp-json/reptilien/v1/animals` – Tier anlegen
+
+    curl -X POST -H "X-Reptilien-API-Key: DEIN_KEY" -H "Content-Type: application/json" \
+      -d '{"name":"Susi","species":"Pogona vitticeps","sex":"female","hatch_date":"2023-01-15"}' \
+      "https://deine-seite.test/wp-json/reptilien/v1/animals"
+
+`PUT /wp-json/reptilien/v1/animals/{id}` – Tier aktualisieren
+
+    curl -X PUT -H "X-Reptilien-API-Key: DEIN_KEY" -H "Content-Type: application/json" \
+      -d '{"name":"Susi Updated"}' \
+      "https://deine-seite.test/wp-json/reptilien/v1/animals/123"
+
+`DELETE /wp-json/reptilien/v1/animals/{id}` – Tier löschen (Standard: Papierkorb; `?force=true` löscht endgültig)
+
+    curl -X DELETE -H "X-Reptilien-API-Key: DEIN_KEY" \
+      "https://deine-seite.test/wp-json/reptilien/v1/animals/123"
+
+`GET /wp-json/reptilien/v1/pairings?per_page=20&page=1` – Verpaarungen auflisten
+
+    curl -H "X-Reptilien-API-Key: DEIN_KEY" \
+      "https://deine-seite.test/wp-json/reptilien/v1/pairings"
+
+`POST /wp-json/reptilien/v1/genetics/calculate` – Punnett-Kreuzung zweier Tiere berechnen
+
+    curl -X POST -H "X-Reptilien-API-Key: DEIN_KEY" -H "Content-Type: application/json" \
+      -d '{"parent1_id":1,"parent2_id":2}' \
+      "https://deine-seite.test/wp-json/reptilien/v1/genetics/calculate"
+
+`GET /wp-json/reptilien/v1/feedings?animal_id=123` – Fütterungen auflisten, optional nach Tier gefiltert
+
+    curl -H "X-Reptilien-API-Key: DEIN_KEY" \
+      "https://deine-seite.test/wp-json/reptilien/v1/feedings?animal_id=123"
+
+`GET /wp-json/reptilien/v1/stats` – Bestands-Statistik
+
+    curl -H "X-Reptilien-API-Key: DEIN_KEY" \
+      "https://deine-seite.test/wp-json/reptilien/v1/stats"
+
+`GET /wp-json/reptilien/v1/openapi.json` – OpenAPI-3.0-Dokumentation (ohne API-Key)
+
+    curl "https://deine-seite.test/wp-json/reptilien/v1/openapi.json"
+
 **Frontend**
 
 * Shortcode `[reptilien]` – filterbare Kartenübersicht aller Tiere mit Filterleiste (Geschlecht, Art, Morph, Alter min/max, Sortierung nach Name/Alter/Gewicht) und Seitennummerierung (`per_page`, Standard 24, `0` = alle); Attribute `sex`, `species`, `morph`, `sort`, `filter="no"` als Vorbelegung
@@ -122,6 +187,13 @@ Vollständige artspezifische Profile (Genetik-Rechner und Futterplan) gibt es f�
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.18.0 =
+* Neu: REST-API unter /wp-json/reptilien/v1/ – Tiere (Liste, Detail, Anlegen, Aktualisieren, Löschen), Verpaarungen (Liste), Genetik-Rechner (Punnett-Kreuzung), Fütterungen (Liste) und Bestands-Statistik (/stats).
+* Neu: Authentifizierung per API-Key (Header X-Reptilien-API-Key), verwaltbar unter „Reptilien → API“; ein gültiger Key setzt den zugehörigen Nutzer, sodass alle bestehenden Berechtigungs- und Autoren-Scopes unverändert greifen (eigene Tiere, fremde nur mit edit_others_posts).
+* Neu: Rate-Limiting (60 Anfragen/Minute je API-Key, HTTP 429 bei Überschreitung), ETag-Unterstützung (304 Not Modified) für alle Lese-Endpunkte, CORS deaktivierbar/aktivierbar per Filter rm_api_cors_allowed_origin.
+* Neu: Selbst-dokumentierender Endpunkt GET /wp-json/reptilien/v1/openapi.json (OpenAPI 3.0, kein API-Key nötig) – die Dokumentation wird aus den Endpunkt-Definitionen der Controller zusammengesetzt.
+* Rückwärts-kompatibel: Die REST-API ist ein zusätzlicher Zugang zu denselben Daten, an der bestehenden Backend-/Frontend-Verwaltung ändert sich nichts.
 
 = 1.17.0 =
 * Neu: Gesundheits-Trends (Reptilien → Gesundheit: Trends) – häufigste Symptome (Balkendiagramm), Symptom-Häufigkeit im Zeitverlauf der letzten Monate (Liniendiagramm), Behandlungs-Erfolgsrate und Tabelle der am häufigsten betroffenen Tiere/Morphe, mit wählbarem Zeitraum (Von/Bis).
