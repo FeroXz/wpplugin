@@ -106,7 +106,7 @@ class RM_Roles {
 			return;
 		}
 
-		$types = array( 'rm_animal', 'rm_pairing', 'rm_feeding_log' );
+		$types = array( 'rm_animal', 'rm_pairing', 'rm_feeding_log', 'reptile_health_entry' );
 		$pt    = $query->get( 'post_type' );
 
 		if ( ! in_array( $pt, $types, true ) ) {

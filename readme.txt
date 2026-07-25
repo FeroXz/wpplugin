@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.15.1
+Stable tag: 1.16.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -55,6 +55,14 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
 * Kosten-Tracking: Preis je Futterart hinterlegen; monatliche Gesamtkosten, Prognose sowie Aufschlüsselung pro Futterart und pro Tier
 * Fütterungsprotokoll mit automatisch erzeugten Titeln („Fütterung 24.07.2026 – Alle Tiere“)
 * Übersichtsseite mit Empfehlung, Auswertung, Nährstoff-Bilanz und letzter Fütterung pro Tier
+
+**Gesundheits-Logbuch**
+
+* Eigener Eintragstyp „Gesundheits-Eintrag“ je Tier: Datum, Symptome (Stau, Bindehautentzündung, Zahnstein, Durchfall, Apathie – Mehrfachauswahl), Diagnose, Behandlung, Tierarzt-Kontakt sowie Ausgeheilt-Status mit Ausheilungsdatum
+* Auto-Titel „Gesundheit [Tier] [Datum]“, solange kein eigener Titel vergeben wird
+* Übersichtsseite „Gesundheits-Logbuch“: alle Einträge, filterbar nach Tier, Symptom und Status (aktiv/gelöst), neueste zuerst
+* Im Tierprofil ([reptil id="123"]) erscheint für den Tier-Besitzer eine Timeline der letzten 5 Einträge inkl. Kurzfassung „Letzte Symptome: X, Y (vor 30 Tagen)“ – für alle anderen Besucher unsichtbar
+* Streng auf den Tier-Besitzer beschränkt: nur wer das zugehörige Tier verwaltet (bzw. `edit_others_posts` hat), darf dessen Gesundheitsdaten lesen oder schreiben
 
 **Frontend**
 
@@ -110,6 +118,12 @@ Vollständige artspezifische Profile (Genetik-Rechner und Futterplan) gibt es f�
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.16.0 =
+* Neu: Gesundheits-Logbuch je Tier – Symptome (Stau, Bindehautentzündung, Zahnstein, Durchfall, Apathie), Diagnose, Behandlung, Tierarzt-Kontakt und Ausgeheilt-Status mit Ausheilungsdatum. Eigener Eintragstyp mit Auto-Titel „Gesundheit [Tier] [Datum]“.
+* Neue Übersichtsseite „Gesundheits-Logbuch“ (Backend): alle Einträge, filterbar nach Tier, Symptom und Status, neueste zuerst.
+* Im Tierprofil ([reptil id="123"]) erscheint für den Tier-Besitzer eine Timeline der letzten 5 Einträge inkl. „Letzte Symptome: X, Y (vor 30 Tagen)“ – für alle anderen Besucher unsichtbar.
+* Sicherheit: Gesundheitsdaten sind strikt auf den Tier-Besitzer beschränkt (bzw. Nutzer mit `edit_others_posts`); alle Formulare sind Nonce-geschützt, eine fremde Tier-Zuordnung wird beim Speichern abgelehnt.
 
 = 1.15.1 =
 * Fix (Gutenberg): Die Tierart lässt sich jetzt auch direkt in der Seitenleiste des Block-Editors wählen (neues Panel „Tierart“). Klassische Meta-Boxen – und damit die Stammdaten mit der Art-Auswahl – landen in Gutenberg ganz unten unter dem Inhalt und werden dort leicht übersehen.

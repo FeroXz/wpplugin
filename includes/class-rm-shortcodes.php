@@ -545,6 +545,14 @@ class RM_Shortcodes {
 						<?php endforeach; ?>
 					</div>
 				<?php endif; ?>
+
+				<?php
+				// Gesundheits-Logbuch: ausschließlich für den Tier-Besitzer sichtbar.
+				$health_html = class_exists( 'RM_Health_Timeline' ) ? RM_Health_Timeline::render( $animal->ID ) : '';
+				if ( $health_html ) :
+					echo $health_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- bereits escapt in RM_Health_Timeline.
+				endif;
+				?>
 			</div>
 		</div>
 		<?php

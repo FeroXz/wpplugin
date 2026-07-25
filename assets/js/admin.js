@@ -291,4 +291,9 @@ jQuery( function ( $ ) {
 				$btn.prop( 'disabled', false );
 			} );
 	} );
+
+	// --- Gesundheits-Eintrag: Heilungs-Status-Toggle ------------------------
+	$( document ).on( 'change', '#rm_health_resolved', function () {
+		$( '.rm-health-resolved-date' ).toggle( $( this ).is( ':checked' ) );
+	} );
 } );
