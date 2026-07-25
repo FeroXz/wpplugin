@@ -1,0 +1,514 @@
+/**
+ * Reptilien Manager PWA – Mobile-First, Dark-Mode-fähig.
+ * Übernimmt dieselbe Designsprache (Indigo/Cyan) wie das übrige Plugin.
+ */
+
+:root {
+	--rm-pwa-primary: var( --color-primary, #4f46e5 );
+	--rm-pwa-accent: var( --color-accent, #06b6d4 );
+	--rm-pwa-ink: var( --color-ink, #0f172a );
+	--rm-pwa-text: var( --color-text, #1e293b );
+	--rm-pwa-muted: var( --color-muted, #64748b );
+	--rm-pwa-surface: var( --color-surface, #ffffff );
+	--rm-pwa-surface-alt: var( --color-surface-alt, #f8fafc );
+	--rm-pwa-border: var( --color-border, #e2e8f0 );
+	--rm-pwa-gradient: linear-gradient( 135deg, #4f46e5 0%, #06b6d4 100% );
+	--rm-pwa-radius: 14px;
+	--rm-pwa-radius-pill: 999px;
+	--rm-pwa-safe-top: env( safe-area-inset-top, 0px );
+	--rm-pwa-safe-bottom: env( safe-area-inset-bottom, 0px );
+}
+
+@media ( prefers-color-scheme: dark ) {
+	:root:not( [ data-theme='light' ] ) {
+		--rm-pwa-ink: var( --color-ink, #f1f5f9 );
+		--rm-pwa-text: var( --color-text, #e2e8f0 );
+		--rm-pwa-muted: var( --color-muted, #94a3b8 );
+		--rm-pwa-surface: var( --color-surface, #0f172a );
+		--rm-pwa-surface-alt: var( --color-surface-alt, #1e293b );
+		--rm-pwa-border: var( --color-border, #334155 );
+	}
+}
+:root[ data-theme='dark' ] {
+	--rm-pwa-ink: var( --color-ink, #f1f5f9 );
+	--rm-pwa-text: var( --color-text, #e2e8f0 );
+	--rm-pwa-muted: var( --color-muted, #94a3b8 );
+	--rm-pwa-surface: var( --color-surface, #0f172a );
+	--rm-pwa-surface-alt: var( --color-surface-alt, #1e293b );
+	--rm-pwa-border: var( --color-border, #334155 );
+}
+
+.rm-pwa,
+.rm-pwa * {
+	box-sizing: border-box;
+}
+
+.rm-pwa {
+	max-width: 480px;
+	margin: 0 auto;
+	background: var( --rm-pwa-surface );
+	color: var( --rm-pwa-text );
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+	padding-top: var( --rm-pwa-safe-top );
+	padding-bottom: var( --rm-pwa-safe-bottom );
+}
+
+/* Offline-Banner */
+.rm-pwa-banner {
+	background: #b91c1c;
+	color: #fff;
+	text-align: center;
+	font-size: 0.85rem;
+	font-weight: 600;
+	padding: 6px 12px;
+}
+
+.rm-pwa-banner--info {
+	background: var( --rm-pwa-primary );
+}
+
+/* Kopfzeile */
+.rm-pwa-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 16px;
+	border-bottom: 1px solid var( --rm-pwa-border );
+	position: sticky;
+	top: 0;
+	background: var( --rm-pwa-surface );
+	z-index: 5;
+}
+
+.rm-pwa-title {
+	margin: 0;
+	font-size: 1.1rem;
+	color: var( --rm-pwa-ink );
+}
+
+.rm-pwa-sync {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.8rem;
+	color: var( --rm-pwa-muted );
+}
+
+.rm-pwa-sync button {
+	background: none;
+	border: none;
+	font-size: 1.1rem;
+	cursor: pointer;
+	padding: 4px;
+	line-height: 1;
+}
+
+.rm-pwa-sync button.is-syncing {
+	animation: rm-pwa-spin 1s linear infinite;
+}
+
+@keyframes rm-pwa-spin {
+	from { transform: rotate( 0deg ); }
+	to { transform: rotate( 360deg ); }
+}
+
+/* Hauptbereich */
+.rm-pwa-view {
+	flex: 1;
+	padding: 12px 16px 24px;
+	overflow-y: auto;
+}
+
+/* Untere Navigation */
+.rm-pwa-nav {
+	display: grid;
+	grid-template-columns: repeat( 4, 1fr );
+	border-top: 1px solid var( --rm-pwa-border );
+	position: sticky;
+	bottom: 0;
+	background: var( --rm-pwa-surface );
+}
+
+.rm-pwa-nav button {
+	background: none;
+	border: none;
+	padding: 10px 4px;
+	font-size: 0.72rem;
+	color: var( --rm-pwa-muted );
+	cursor: pointer;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+}
+
+.rm-pwa-nav button.is-active {
+	color: var( --rm-pwa-primary );
+	font-weight: 600;
+}
+
+/* Buttons */
+.rm-pwa-btn {
+	border: 1px solid var( --rm-pwa-border );
+	background: var( --rm-pwa-surface-alt );
+	color: var( --rm-pwa-text );
+	border-radius: var( --rm-pwa-radius-pill );
+	padding: 8px 16px;
+	font-size: 0.85rem;
+	cursor: pointer;
+	touch-action: manipulation;
+}
+
+.rm-pwa-btn--primary {
+	background: var( --rm-pwa-gradient );
+	color: #fff;
+	border: none;
+	font-weight: 600;
+}
+
+.rm-pwa-btn--small {
+	padding: 6px 10px;
+	font-size: 0.75rem;
+}
+
+.rm-pwa-btn--block {
+	width: 100%;
+	padding: 12px;
+	font-size: 0.95rem;
+	margin-top: 8px;
+}
+
+/* Suche */
+.rm-pwa-search {
+	width: 100%;
+	padding: 10px 14px;
+	border: 1px solid var( --rm-pwa-border );
+	border-radius: var( --rm-pwa-radius-pill );
+	background: var( --rm-pwa-surface-alt );
+	color: var( --rm-pwa-text );
+	margin-bottom: 14px;
+	font-size: 0.95rem;
+}
+
+/* Tier-Karten */
+.rm-pwa-animal-grid {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	/* Reserviert Platz, damit Bilder beim Laden keinen Layout-Shift verursachen. */
+	min-height: 120px;
+}
+
+.rm-pwa-card {
+	display: grid;
+	grid-template-columns: 64px 1fr;
+	gap: 12px;
+	padding: 12px;
+	background: var( --rm-pwa-surface-alt );
+	border: 1px solid var( --rm-pwa-border );
+	border-radius: var( --rm-pwa-radius );
+}
+
+.rm-pwa-card__photo {
+	width: 64px;
+	height: 64px;
+	border-radius: 12px;
+	background: var( --rm-pwa-border );
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	aspect-ratio: 1 / 1;
+}
+
+.rm-pwa-card__img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.rm-pwa-card__placeholder {
+	font-size: 1.8rem;
+}
+
+.rm-pwa-card__name {
+	margin: 0;
+	font-size: 1rem;
+	color: var( --rm-pwa-ink );
+}
+
+.rm-pwa-card__meta,
+.rm-pwa-card__weight {
+	margin: 2px 0;
+	font-size: 0.8rem;
+	color: var( --rm-pwa-muted );
+}
+
+.rm-pwa-card__status {
+	display: inline-block;
+	font-size: 0.68rem;
+	font-weight: 600;
+	padding: 2px 8px;
+	border-radius: var( --rm-pwa-radius-pill );
+	background: #dcfce7;
+	color: #15803d;
+}
+
+.rm-pwa-card__actions {
+	grid-column: 1 / -1;
+	display: flex;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+/* Detail-Ansicht */
+.rm-pwa-back {
+	background: none;
+	border: none;
+	color: var( --rm-pwa-primary );
+	font-weight: 600;
+	padding: 4px 0 12px;
+	cursor: pointer;
+}
+
+.rm-pwa-detail__photo {
+	width: 100%;
+	aspect-ratio: 4 / 3;
+	background: var( --rm-pwa-surface-alt );
+	border-radius: var( --rm-pwa-radius );
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	margin-bottom: 12px;
+}
+
+.rm-pwa-detail__img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.rm-pwa-detail__name {
+	margin: 0 0 2px;
+	color: var( --rm-pwa-ink );
+}
+
+.rm-pwa-detail__morph {
+	margin: 0 0 12px;
+	color: var( --rm-pwa-muted );
+}
+
+.rm-pwa-tabs {
+	display: flex;
+	gap: 4px;
+	overflow-x: auto;
+	border-bottom: 1px solid var( --rm-pwa-border );
+	margin-bottom: 12px;
+}
+
+.rm-pwa-tab {
+	background: none;
+	border: none;
+	padding: 8px 10px;
+	font-size: 0.82rem;
+	color: var( --rm-pwa-muted );
+	white-space: nowrap;
+	cursor: pointer;
+	border-bottom: 2px solid transparent;
+}
+
+.rm-pwa-tab.is-active {
+	color: var( --rm-pwa-primary );
+	border-bottom-color: var( --rm-pwa-primary );
+	font-weight: 600;
+}
+
+.rm-pwa-tab-panel {
+	display: none;
+}
+
+.rm-pwa-tab-panel.is-active {
+	display: block;
+}
+
+.rm-pwa-facts {
+	margin: 0;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 10px;
+}
+
+.rm-pwa-facts dt {
+	font-size: 0.72rem;
+	color: var( --rm-pwa-muted );
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+}
+
+.rm-pwa-facts dd {
+	margin: 0;
+	font-size: 0.95rem;
+	color: var( --rm-pwa-ink );
+}
+
+.rm-pwa-detail__actions {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin-top: 20px;
+}
+
+.rm-pwa-muted {
+	color: var( --rm-pwa-muted );
+	font-size: 0.88rem;
+}
+
+.rm-pwa-empty {
+	color: var( --rm-pwa-muted );
+	text-align: center;
+	padding: 24px 0;
+}
+
+/* Formulare / Modal */
+.rm-pwa-modal {
+	position: fixed;
+	inset: 0;
+	z-index: 50;
+	display: flex;
+	align-items: flex-end;
+}
+
+.rm-pwa-modal__backdrop {
+	position: absolute;
+	inset: 0;
+	background: rgba( 15, 23, 42, 0.5 );
+}
+
+.rm-pwa-modal__sheet {
+	position: relative;
+	width: 100%;
+	max-height: 88vh;
+	overflow-y: auto;
+	background: var( --rm-pwa-surface );
+	border-radius: 20px 20px 0 0;
+	padding: 20px 20px calc( 20px + var( --rm-pwa-safe-bottom ) );
+	z-index: 1;
+}
+
+.rm-pwa-modal__close {
+	position: absolute;
+	top: 10px;
+	right: 14px;
+	background: none;
+	border: none;
+	font-size: 1.4rem;
+	line-height: 1;
+	color: var( --rm-pwa-muted );
+	cursor: pointer;
+}
+
+.rm-pwa-form h2 {
+	margin: 0 0 14px;
+	color: var( --rm-pwa-ink );
+}
+
+.rm-pwa-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-bottom: 14px;
+}
+
+.rm-pwa-field > span {
+	font-size: 0.82rem;
+	font-weight: 600;
+	color: var( --rm-pwa-ink );
+}
+
+.rm-pwa-field input,
+.rm-pwa-field select {
+	padding: 10px 12px;
+	border: 1px solid var( --rm-pwa-border );
+	border-radius: 10px;
+	background: var( --rm-pwa-surface-alt );
+	color: var( --rm-pwa-text );
+	font-size: 1rem;
+}
+
+.rm-pwa-choice-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.rm-pwa-choice-grid label {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 6px 10px;
+	border: 1px solid var( --rm-pwa-border );
+	border-radius: var( --rm-pwa-radius-pill );
+	font-size: 0.8rem;
+	background: var( --rm-pwa-surface-alt );
+}
+
+.rm-pwa-camera-preview {
+	width: 100%;
+	border-radius: 10px;
+	margin-top: 8px;
+	background: #000;
+}
+
+.rm-pwa-photo-preview {
+	width: 100%;
+	border-radius: 10px;
+	margin-top: 8px;
+}
+
+/* Scan-Ansicht */
+.rm-pwa-scan-view {
+	text-align: center;
+}
+
+.rm-pwa-scan-video {
+	width: 100%;
+	border-radius: var( --rm-pwa-radius );
+	background: #000;
+	aspect-ratio: 3 / 4;
+	object-fit: cover;
+}
+
+/* Toast */
+.rm-pwa-toast {
+	position: fixed;
+	left: 50%;
+	bottom: calc( 76px + var( --rm-pwa-safe-bottom ) );
+	transform: translateX( -50% );
+	background: var( --rm-pwa-ink );
+	color: #fff;
+	padding: 10px 18px;
+	border-radius: var( --rm-pwa-radius-pill );
+	font-size: 0.85rem;
+	z-index: 100;
+	max-width: 90%;
+	text-align: center;
+}
+
+/* Reduzierte Bewegung */
+@media ( prefers-reduced-motion: reduce ) {
+	.rm-pwa-sync button.is-syncing {
+		animation: none;
+	}
+}
+
+@media ( min-width: 540px ) {
+	.rm-pwa {
+		border-left: 1px solid var( --rm-pwa-border );
+		border-right: 1px solid var( --rm-pwa-border );
+		min-height: 100vh;
+	}
+}

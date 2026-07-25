@@ -1,0 +1,40 @@
+{
+	"name": "Reptilien Manager Mobile",
+	"short_name": "RM Mobile",
+	"description": "Verwalte deine Reptilien unterwegs: Tiere, Gewicht, Fütterung – auch offline.",
+	"scope": "__RM_PWA_SCOPE__",
+	"start_url": "__RM_PWA_START_URL__",
+	"id": "__RM_PWA_START_URL__",
+	"display": "standalone",
+	"orientation": "portrait-primary",
+	"background_color": "#ffffff",
+	"theme_color": "#4f46e5",
+	"lang": "de",
+	"dir": "ltr",
+	"icons": [
+		{ "src": "__RM_PWA_ICON_192__", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+		{ "src": "__RM_PWA_ICON_192__", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+		{ "src": "__RM_PWA_ICON_512__", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+		{ "src": "__RM_PWA_ICON_512__", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+	],
+	"shortcuts": [
+		{
+			"name": "Gewicht erfassen",
+			"short_name": "Wiegen",
+			"description": "Schnell ein neues Gewicht für ein Tier eintragen",
+			"url": "__RM_PWA_START_URL__?rm_pwa_action=quick-weight"
+		},
+		{
+			"name": "Fütterung erfassen",
+			"short_name": "Füttern",
+			"description": "Schnell eine Fütterung protokollieren",
+			"url": "__RM_PWA_START_URL__?rm_pwa_action=quick-feeding"
+		},
+		{
+			"name": "QR-Code scannen",
+			"short_name": "Scannen",
+			"description": "Tier per QR-Code öffnen",
+			"url": "__RM_PWA_START_URL__?rm_pwa_action=scan"
+		}
+	]
+}

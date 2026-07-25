@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.18.0
+Stable tag: 1.19.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -124,6 +124,12 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
     curl -H "X-Reptilien-API-Key: DEIN_KEY" \
       "https://deine-seite.test/wp-json/reptilien/v1/feedings?animal_id=123"
 
+`POST /wp-json/reptilien/v1/feedings` – Fütterung anlegen (seit 1.19.0, für die PWA-Quick-Feeding-Funktion)
+
+    curl -X POST -H "X-Reptilien-API-Key: DEIN_KEY" -H "Content-Type: application/json" \
+      -d '{"animal_ids":[123],"foods":["heimchen"],"amount":"10 Heimchen"}' \
+      "https://deine-seite.test/wp-json/reptilien/v1/feedings"
+
 `GET /wp-json/reptilien/v1/stats` – Bestands-Statistik
 
     curl -H "X-Reptilien-API-Key: DEIN_KEY" \
@@ -132,6 +138,17 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
 `GET /wp-json/reptilien/v1/openapi.json` – OpenAPI-3.0-Dokumentation (ohne API-Key)
 
     curl "https://deine-seite.test/wp-json/reptilien/v1/openapi.json"
+
+**Progressive Web App (Mobil)**
+
+* Shortcode `[reptilien-pwa]` auf einer beliebigen Seite eingebunden: Mobile-First-App zum Verwalten unterwegs – Tier-Liste, Tier-Detail (Tabs Basics/Weight/Feeding/Health/Sales), Quick-Weight- und Quick-Feeding-Formular sowie ein QR-Code-Scanner (Kamera), der über die im QR-Code hinterlegte Tier-ID direkt zum passenden Tier springt
+* Installierbar auf dem Home-Bildschirm (Android/Chrome: „Zur Startseite hinzufügen“-Prompt; iOS/Safari: Teilen → „Zum Home-Bildschirm“) – läuft danach im Standalone-Modus ohne Browser-Leiste
+* Offline-fähig: Tierliste und -details werden in IndexedDB zwischengespeichert und sind ohne Verbindung weiter nutzbar; neue Gewichts- und Fütterungs-Einträge landen offline in einer lokalen Warteschlange und werden automatisch synchronisiert, sobald wieder eine Verbindung besteht (manuelles Sync-Symbol oben rechts, da iOS Safari keine automatische Hintergrund-Synchronisierung unterstützt)
+* Offline-Banner und Sync-Status („N ausstehend“) jederzeit sichtbar
+* Optionale Benachrichtigungen (Browser-Berechtigung), die nach einer erfolgreichen Synchronisierung informieren
+* Nutzt dieselbe REST-API (siehe oben) mit einem automatisch für den eingeloggten Nutzer erzeugten API-Key – verwaltbar wie gewohnt unter „Reptilien → API“
+* Nur für eingeloggte Nutzer mit Verwaltungsrecht (dieselbe Berechtigung wie `[reptilien-verwaltung]`)
+* Zwei Dateien werden zusätzlich direkt von der Domain-Wurzel ausgeliefert (nötig für Service-Worker-Scope bzw. eine dynamische, installationsabhängige start_url): `/reptilien-manager-sw.js` und `/reptilien-manager-manifest.webmanifest`
 
 **Frontend**
 
@@ -187,6 +204,14 @@ Vollständige artspezifische Profile (Genetik-Rechner und Futterplan) gibt es f�
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.19.0 =
+* Neu: Progressive Web App über den Shortcode [reptilien-pwa] – installierbar auf dem Home-Bildschirm (Android/iOS), Mobile-First-Oberfläche mit Tier-Liste, Tier-Detail (inkl. Gewichtsverlauf-Chart), Quick-Weight- (mit optionalem Kamera-Foto) und Quick-Feeding-Formular sowie einem QR-Code-Scanner zum direkten Öffnen eines Tieres.
+* Offline-First: Tierdaten werden in IndexedDB zwischengespeichert (weiter nutzbar ohne Verbindung); neue Gewichts-/Fütterungs-Einträge werden offline in einer FIFO-Warteschlange gespeichert und automatisch synchronisiert, sobald wieder eine Verbindung besteht.
+* Service Worker mit Cache-First für statische Assets und Network-First (mit IndexedDB-Fallback) für die REST-API; Offline-Banner und Sync-Status-Anzeige.
+* Neu: POST /wp-json/reptilien/v1/feedings – Fütterung anlegen (für die Quick-Feeding-Funktion der PWA; nutzt dieselbe Speicherlogik wie der bestehende Schnelleintrag). GET /animals/{id} liefert zusätzlich weight_history und photo.
+* Zwei zusätzliche, von der Domain-Wurzel ausgelieferte Dateien: /reptilien-manager-sw.js (Service Worker, braucht Root-Scope) und /reptilien-manager-manifest.webmanifest (PWA-Manifest mit installationsabhängiger start_url).
+* Rückwärts-kompatibel: reine Ergänzung, an der bestehenden Verwaltung ändert sich nichts.
 
 = 1.18.0 =
 * Neu: REST-API unter /wp-json/reptilien/v1/ – Tiere (Liste, Detail, Anlegen, Aktualisieren, Löschen), Verpaarungen (Liste), Genetik-Rechner (Punnett-Kreuzung), Fütterungen (Liste) und Bestands-Statistik (/stats).

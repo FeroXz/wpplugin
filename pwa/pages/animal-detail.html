@@ -1,0 +1,46 @@
+<div class="rm-pwa-detail-view">
+	<button type="button" class="rm-pwa-back" data-action="back">← Zurück</button>
+
+	<div class="rm-pwa-detail__photo">
+		<img class="rm-pwa-detail__img" alt="" hidden />
+		<span class="rm-pwa-card__placeholder">🦎</span>
+	</div>
+	<h2 class="rm-pwa-detail__name"></h2>
+	<p class="rm-pwa-detail__morph"></p>
+
+	<div class="rm-pwa-tabs" role="tablist">
+		<button type="button" class="rm-pwa-tab is-active" data-tab="basics" role="tab">Basics</button>
+		<button type="button" class="rm-pwa-tab" data-tab="weight" role="tab">Weight</button>
+		<button type="button" class="rm-pwa-tab" data-tab="feeding" role="tab">Feeding</button>
+		<button type="button" class="rm-pwa-tab" data-tab="health" role="tab">Health</button>
+		<button type="button" class="rm-pwa-tab" data-tab="sales" role="tab">Sales</button>
+	</div>
+
+	<section class="rm-pwa-tab-panel is-active" data-panel="basics">
+		<dl class="rm-pwa-facts"></dl>
+	</section>
+
+	<section class="rm-pwa-tab-panel" data-panel="weight">
+		<canvas id="rm-pwa-weight-chart" height="220"></canvas>
+		<p class="rm-pwa-empty" data-empty-weight hidden>Noch kein Gewichtsverlauf vorhanden.</p>
+	</section>
+
+	<section class="rm-pwa-tab-panel" data-panel="feeding">
+		<p class="rm-pwa-muted">Trage jetzt eine Fütterung ein – die vollständige Historie siehst du in der Vollversion.</p>
+		<button type="button" class="rm-pwa-btn rm-pwa-btn--primary" data-action="feed">Fütterung erfassen</button>
+	</section>
+
+	<section class="rm-pwa-tab-panel" data-panel="health">
+		<p class="rm-pwa-muted">Gesundheits-Einträge sind in dieser Mobil-Ansicht noch nicht verfügbar. <a href="#" data-action="open-full-site">Vollversion öffnen →</a></p>
+	</section>
+
+	<section class="rm-pwa-tab-panel" data-panel="sales">
+		<p class="rm-pwa-muted">Der Verkaufsstatus wird in der Vollversion verwaltet. <a href="#" data-action="open-full-site">Vollversion öffnen →</a></p>
+	</section>
+
+	<div class="rm-pwa-detail__actions">
+		<button type="button" class="rm-pwa-btn" data-action="edit">Edit</button>
+		<button type="button" class="rm-pwa-btn rm-pwa-btn--primary" data-action="weight">Quick-Weight</button>
+		<button type="button" class="rm-pwa-btn rm-pwa-btn--primary" data-action="feed">Quick-Feeding</button>
+	</div>
+</div>

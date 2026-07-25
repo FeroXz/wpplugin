@@ -132,6 +132,10 @@ class RM_REST_Animals extends RM_REST_Controller {
 			'hatch_date' => array( 'type' => 'string', 'format' => 'date' ),
 			'weight'     => array( 'type' => 'integer', 'nullable' => true ),
 			'status'     => array( 'type' => 'string' ),
+			'photo'      => array(
+				'type'     => 'string',
+				'nullable' => true,
+			),
 		);
 
 		$animal_schema = array(
@@ -144,14 +148,24 @@ class RM_REST_Animals extends RM_REST_Controller {
 			'properties' => array_merge(
 				$animal_properties,
 				array(
-					'origin'       => array( 'type' => 'string' ),
-					'length'       => array( 'type' => 'number' ),
-					'public'       => array( 'type' => 'boolean' ),
-					'morph'        => array( 'type' => 'string' ),
-					'genetics'     => array( 'type' => 'object' ),
-					'notes'        => array( 'type' => 'string' ),
-					'sales_status' => array( 'type' => 'string' ),
-					'owner_id'     => array( 'type' => 'integer' ),
+					'origin'         => array( 'type' => 'string' ),
+					'length'         => array( 'type' => 'number' ),
+					'public'         => array( 'type' => 'boolean' ),
+					'morph'          => array( 'type' => 'string' ),
+					'genetics'       => array( 'type' => 'object' ),
+					'weight_history' => array(
+						'type'  => 'array',
+						'items' => array(
+							'type'       => 'object',
+							'properties' => array(
+								'date'  => array( 'type' => 'string' ),
+								'grams' => array( 'type' => 'integer' ),
+							),
+						),
+					),
+					'notes'          => array( 'type' => 'string' ),
+					'sales_status'   => array( 'type' => 'string' ),
+					'owner_id'       => array( 'type' => 'integer' ),
 				)
 			),
 		);
@@ -782,6 +796,7 @@ class RM_REST_Animals extends RM_REST_Controller {
 			'hatch_date' => get_post_meta( $animal->ID, '_rm_birth', true ),
 			'weight'     => $weight,
 			'status'     => self::status_label( $animal->post_status ),
+			'photo'      => has_post_thumbnail( $animal ) ? get_the_post_thumbnail_url( $animal, 'medium' ) : null,
 		);
 	}
 
@@ -797,17 +812,31 @@ class RM_REST_Animals extends RM_REST_Controller {
 		$genes  = RM_Genetics::get_animal_genes( $animal->ID );
 		$genes  = array_filter( $genes );
 
+		$weights = get_post_meta( $animal->ID, '_rm_weights', true );
+		$history = array();
+		if ( is_array( $weights ) ) {
+			foreach ( $weights as $entry ) {
+				if ( ! empty( $entry['grams'] ) ) {
+					$history[] = array(
+						'date'  => isset( $entry['date'] ) ? $entry['date'] : '',
+						'grams' => (int) $entry['grams'],
+					);
+				}
+			}
+		}
+
 		return array_merge(
 			$summary,
 			array(
-				'origin'       => get_post_meta( $animal->ID, '_rm_origin', true ),
-				'length'       => get_post_meta( $animal->ID, '_rm_length', true ),
-				'public'       => '0' !== (string) get_post_meta( $animal->ID, '_rm_public', true ),
-				'morph'        => RM_Genetics::animal_morph_label( $animal->ID ),
-				'genetics'     => (object) $genes,
-				'notes'        => $animal->post_content,
-				'sales_status' => $summary['status'],
-				'owner_id'     => (int) $animal->post_author,
+				'origin'         => get_post_meta( $animal->ID, '_rm_origin', true ),
+				'length'         => get_post_meta( $animal->ID, '_rm_length', true ),
+				'public'         => '0' !== (string) get_post_meta( $animal->ID, '_rm_public', true ),
+				'morph'          => RM_Genetics::animal_morph_label( $animal->ID ),
+				'genetics'       => (object) $genes,
+				'weight_history' => $history,
+				'notes'          => $animal->post_content,
+				'sales_status'   => $summary['status'],
+				'owner_id'       => (int) $animal->post_author,
 			)
 		);
 	}

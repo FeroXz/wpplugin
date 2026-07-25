@@ -20,7 +20,7 @@ class RM_REST_Feedings extends RM_REST_Controller {
 			self::NAMESPACE,
 			'/feedings',
 			array(
-				'summary' => __( 'Fütterungen auflisten.', 'reptilien-manager' ),
+				'summary' => __( 'Fütterungen auflisten oder anlegen.', 'reptilien-manager' ),
 				array(
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( __CLASS__, 'list_feedings' ),
@@ -42,12 +42,49 @@ class RM_REST_Feedings extends RM_REST_Controller {
 						),
 					),
 				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( __CLASS__, 'create_feeding' ),
+					'permission_callback' => array( __CLASS__, 'permission_write' ),
+					'args'                => array(
+						'animal_ids'  => array(
+							'type'        => 'array',
+							'required'    => true,
+							'description' => __( 'Beitrags-IDs der gefütterten Tiere.', 'reptilien-manager' ),
+						),
+						'date'        => array(
+							'type'        => 'string',
+							'description' => __( 'Datum (YYYY-MM-DD), Standard heute.', 'reptilien-manager' ),
+						),
+						'foods'       => array(
+							'type'        => 'array',
+							'required'    => true,
+							'description' => __( 'Futterarten-Schlüssel.', 'reptilien-manager' ),
+						),
+						'amount'      => array(
+							'type'        => 'string',
+							'description' => __( 'Mengenangabe.', 'reptilien-manager' ),
+						),
+						'supplements' => array(
+							'type'        => 'array',
+							'description' => __( 'Supplement-Schlüssel.', 'reptilien-manager' ),
+						),
+						'notes'       => array(
+							'type'        => 'string',
+							'description' => __( 'Notizen.', 'reptilien-manager' ),
+						),
+					),
+				),
 			)
 		);
 	}
 
 	public static function permission_read( $request ) {
 		return current_user_can( 'read' ) ? true : self::error( 'rm_forbidden', __( 'Keine Berechtigung.', 'reptilien-manager' ), 403 );
+	}
+
+	public static function permission_write( $request ) {
+		return current_user_can( 'edit_posts' ) ? true : self::error( 'rm_forbidden', __( 'Keine Berechtigung.', 'reptilien-manager' ), 403 );
 	}
 
 	/**
@@ -98,6 +135,52 @@ class RM_REST_Feedings extends RM_REST_Controller {
 		$response = self::with_etag( $request, $payload );
 		self::add_pagination_headers( $response, $query->found_posts, $per_page );
 		return $response;
+	}
+
+	/**
+	 * POST /feedings – neuen Fütterungs-Eintrag anlegen (dieselbe
+	 * Speicherlogik wie der Schnelleintrag im Backend/Frontend, siehe
+	 * RM_Feeding::create_log()).
+	 *
+	 * @param WP_REST_Request $request Anfrage.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function create_feeding( $request ) {
+		$params = $request->get_json_params();
+		if ( ! is_array( $params ) ) {
+			$params = array();
+		}
+
+		$requested_ids = isset( $params['animal_ids'] ) ? array_map( 'absint', (array) $params['animal_ids'] ) : array();
+		$animal_ids    = array();
+		foreach ( array_unique( array_filter( $requested_ids ) ) as $animal_id ) {
+			$animal = get_post( $animal_id );
+			if ( self::can_manage( $animal, 'rm_animal' ) ) {
+				$animal_ids[] = $animal_id;
+			}
+		}
+
+		if ( ! $animal_ids ) {
+			return self::error( 'rm_invalid_animals', __( 'Kein zugängliches Tier angegeben.', 'reptilien-manager' ), 400 );
+		}
+
+		$foods       = isset( $params['foods'] ) ? array_map( 'sanitize_key', (array) $params['foods'] ) : array();
+		$supplements = isset( $params['supplements'] ) ? array_map( 'sanitize_key', (array) $params['supplements'] ) : array();
+		$date        = isset( $params['date'] ) ? sanitize_text_field( $params['date'] ) : '';
+		$amount      = isset( $params['amount'] ) ? sanitize_text_field( $params['amount'] ) : '';
+		$notes       = isset( $params['notes'] ) ? sanitize_textarea_field( $params['notes'] ) : '';
+
+		if ( ! class_exists( 'RM_Feeding' ) ) {
+			return self::error( 'rm_unavailable', __( 'Fütterungs-Modul nicht verfügbar.', 'reptilien-manager' ), 500 );
+		}
+
+		$log_id = RM_Feeding::create_log( $animal_ids, $date, $foods, $amount, $supplements, $notes );
+
+		if ( is_wp_error( $log_id ) ) {
+			return self::error( 'rm_invalid_feeding', $log_id->get_error_message(), 400 );
+		}
+
+		return new WP_REST_Response( self::feeding_summary( get_post( $log_id ) ), 201 );
 	}
 
 	/**
@@ -192,6 +275,45 @@ class RM_REST_Feedings extends RM_REST_Controller {
 								),
 							),
 						),
+						'401' => array( 'description' => __( 'Fehlender oder ungültiger API-Key.', 'reptilien-manager' ) ),
+					),
+				),
+				'post' => array(
+					'summary'     => __( 'Fütterung anlegen (Quick-Feeding).', 'reptilien-manager' ),
+					'requestBody' => array(
+						'required' => true,
+						'content'  => array(
+							'application/json' => array(
+								'schema' => array(
+									'type'       => 'object',
+									'required'   => array( 'animal_ids', 'foods' ),
+									'properties' => array(
+										'animal_ids'  => array(
+											'type'  => 'array',
+											'items' => array( 'type' => 'integer' ),
+										),
+										'date'        => array( 'type' => 'string' ),
+										'foods'       => array(
+											'type'  => 'array',
+											'items' => array( 'type' => 'string' ),
+										),
+										'amount'      => array( 'type' => 'string' ),
+										'supplements' => array(
+											'type'  => 'array',
+											'items' => array( 'type' => 'string' ),
+										),
+										'notes'       => array( 'type' => 'string' ),
+									),
+								),
+							),
+						),
+					),
+					'responses'   => array(
+						'201' => array(
+							'description' => __( 'Angelegt.', 'reptilien-manager' ),
+							'content'     => array( 'application/json' => array( 'schema' => array( 'type' => 'object' ) ) ),
+						),
+						'400' => array( 'description' => __( 'Ungültige Eingabe oder kein zugängliches Tier.', 'reptilien-manager' ) ),
 						'401' => array( 'description' => __( 'Fehlender oder ungültiger API-Key.', 'reptilien-manager' ) ),
 					),
 				),

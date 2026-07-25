@@ -1,0 +1,66 @@
+<div class="rm-pwa-modal" data-mode="weight">
+	<div class="rm-pwa-modal__backdrop" data-action="close"></div>
+	<div class="rm-pwa-modal__sheet" role="dialog" aria-modal="true">
+		<button type="button" class="rm-pwa-modal__close" data-action="close" aria-label="Schließen">×</button>
+
+		<form data-form="weight" class="rm-pwa-form">
+			<h2>Gewicht erfassen</h2>
+
+			<label class="rm-pwa-field">
+				<span>Tier</span>
+				<select name="animal_id" required></select>
+			</label>
+
+			<label class="rm-pwa-field">
+				<span>Gewicht (g)</span>
+				<input type="number" name="weight" min="0" step="1" inputmode="numeric" required />
+			</label>
+
+			<label class="rm-pwa-field">
+				<span>Datum</span>
+				<input type="date" name="date" required />
+			</label>
+
+			<div class="rm-pwa-field">
+				<span>Foto (optional)</span>
+				<button type="button" class="rm-pwa-btn" data-action="capture-photo">📷 Foto aufnehmen</button>
+				<video class="rm-pwa-camera-preview" autoplay playsinline muted hidden></video>
+				<button type="button" class="rm-pwa-btn rm-pwa-btn--small" data-action="snap-photo" hidden>Auslösen</button>
+				<canvas class="rm-pwa-photo-preview" hidden></canvas>
+			</div>
+
+			<button type="submit" class="rm-pwa-btn rm-pwa-btn--primary rm-pwa-btn--block">Speichern</button>
+		</form>
+
+		<form data-form="feeding" class="rm-pwa-form" hidden>
+			<h2>Fütterung erfassen</h2>
+
+			<label class="rm-pwa-field">
+				<span>Tier</span>
+				<select name="animal_id" required></select>
+			</label>
+
+			<div class="rm-pwa-field">
+				<span>Futterart</span>
+				<div class="rm-pwa-choice-grid" data-choices="foods"></div>
+			</div>
+
+			<label class="rm-pwa-field">
+				<span>Menge</span>
+				<input type="text" name="amount" placeholder="z. B. 10 Heimchen" />
+			</label>
+
+			<div class="rm-pwa-field">
+				<span>Supplemente</span>
+				<div class="rm-pwa-choice-grid" data-choices="supplements"></div>
+			</div>
+
+			<label class="rm-pwa-field">
+				<span>Datum</span>
+				<input type="date" name="date" required />
+			</label>
+
+			<button type="submit" class="rm-pwa-btn rm-pwa-btn--primary rm-pwa-btn--block">Speichern</button>
+		</form>
+	</div>
+</div>

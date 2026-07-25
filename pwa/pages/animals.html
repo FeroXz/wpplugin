@@ -1,0 +1,27 @@
+<div class="rm-pwa-list-view">
+	<input type="search" id="rm-pwa-search" class="rm-pwa-search" placeholder="Tier, Art oder Morph suchen…" autocomplete="off" />
+
+	<p class="rm-pwa-empty" id="rm-pwa-list-empty" hidden>Keine Tiere gefunden.</p>
+
+	<div id="rm-pwa-animal-list" class="rm-pwa-animal-grid" aria-live="polite"></div>
+
+	<template id="rm-pwa-animal-card-template">
+		<article class="rm-pwa-card" data-id="">
+			<div class="rm-pwa-card__photo">
+				<img class="rm-pwa-card__img" alt="" hidden />
+				<span class="rm-pwa-card__placeholder">🦎</span>
+			</div>
+			<div class="rm-pwa-card__body">
+				<h2 class="rm-pwa-card__name"></h2>
+				<p class="rm-pwa-card__meta"></p>
+				<p class="rm-pwa-card__weight"></p>
+				<span class="rm-pwa-card__status"></span>
+			</div>
+			<div class="rm-pwa-card__actions">
+				<button type="button" class="rm-pwa-btn rm-pwa-btn--small" data-action="edit">Edit</button>
+				<button type="button" class="rm-pwa-btn rm-pwa-btn--small" data-action="weight">Wiegen</button>
+				<button type="button" class="rm-pwa-btn rm-pwa-btn--small" data-action="feed">Füttern</button>
+			</div>
+		</article>
+	</template>
+</div>

@@ -3,7 +3,7 @@
  * Plugin Name:       Reptilien Manager
  * Plugin URI:        https://github.com/FeroXz/wpplugin
  * Description:       Verwaltung von Reptilien – Bartagame (Pogona vitticeps) und Grüner Leguan (Iguana iguana). Eigene Tiere mit Fotos und allen wichtigen Daten erfassen, Verpaarungen planen inkl. artspezifischer Genetik-Vorschau der Jungtiere sowie artgerechte Futterplanung und Fütterungsprotokoll.
- * Version:           1.18.0
+ * Version:           1.19.0
  * Author:            FeroXz
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'RM_VERSION', '1.18.0' );
+define( 'RM_VERSION', '1.19.0' );
 define( 'RM_PLUGIN_FILE', __FILE__ );
 define( 'RM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'RM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -61,6 +61,10 @@ require_once RM_PLUGIN_DIR . 'includes/api/class-rest-genetics.php';
 require_once RM_PLUGIN_DIR . 'includes/api/class-rest-feedings.php';
 require_once RM_PLUGIN_DIR . 'includes/classes/class-openapi-generator.php';
 
+// Progressive Web App (v1.19.0).
+require_once RM_PLUGIN_DIR . 'includes/frontend/class-pwa-assets.php';
+require_once RM_PLUGIN_DIR . 'includes/frontend/class-pwa-shortcode.php';
+
 /**
  * Plugin bootstrap.
  */
@@ -101,6 +105,8 @@ final class Reptilien_Manager {
 		RM_REST_Genetics::init();
 		RM_REST_Feedings::init();
 		RM_OpenAPI_Generator::init();
+		RM_PWA_Assets::init();
+		RM_PWA_Shortcode::init();
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_assets' ) );
 
