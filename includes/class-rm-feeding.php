@@ -17,6 +17,9 @@ class RM_Feeding {
 	 */
 	const ANALYSIS_DAYS = 14;
 
+	/** Obergrenze für die Serien-Erfassung (Tage je Schnelleintrag). */
+	const MAX_BULK_DAYS = 90;
+
 	public static function init() {
 		add_action( 'add_meta_boxes_rm_feeding_log', array( __CLASS__, 'add_meta_boxes' ) );
 		add_action( 'save_post_rm_feeding_log', array( __CLASS__, 'save' ), 10, 2 );
@@ -1036,6 +1039,130 @@ class RM_Feeding {
 	}
 
 	/**
+	 * Wochentage für die Serien-Erfassung (ISO-8601: Montag = 1).
+	 *
+	 * @return array<int,string>
+	 */
+	public static function weekdays() {
+		return array(
+			1 => __( 'Mo', 'reptilien-manager' ),
+			2 => __( 'Di', 'reptilien-manager' ),
+			3 => __( 'Mi', 'reptilien-manager' ),
+			4 => __( 'Do', 'reptilien-manager' ),
+			5 => __( 'Fr', 'reptilien-manager' ),
+			6 => __( 'Sa', 'reptilien-manager' ),
+			7 => __( 'So', 'reptilien-manager' ),
+		);
+	}
+
+	/**
+	 * Expandiert einen Zeitraum zu einer Liste einzelner Tage, optional nur
+	 * auf bestimmte Wochentage (z. B. „jeden Mo/Mi/Fr für vier Wochen“).
+	 *
+	 * @param string $from     Startdatum (Y-m-d).
+	 * @param string $to       Enddatum (Y-m-d); leer = wie $from.
+	 * @param int[]  $weekdays ISO-Wochentage 1–7; leer = alle Tage.
+	 * @return string[]|WP_Error Liste von Y-m-d-Daten.
+	 */
+	public static function expand_dates( $from, $to, $weekdays = array() ) {
+		$from_ts = $from ? strtotime( $from ) : false;
+		if ( ! $from_ts ) {
+			return new WP_Error( 'rm_feed_bad_range', __( 'Bitte ein gültiges Startdatum angeben.', 'reptilien-manager' ) );
+		}
+
+		$to_ts = $to ? strtotime( $to ) : $from_ts;
+		if ( ! $to_ts ) {
+			return new WP_Error( 'rm_feed_bad_range', __( 'Bitte ein gültiges Enddatum angeben.', 'reptilien-manager' ) );
+		}
+
+		// Vertauschte Grenzen still korrigieren statt abzulehnen.
+		if ( $from_ts > $to_ts ) {
+			list( $from_ts, $to_ts ) = array( $to_ts, $from_ts );
+		}
+
+		$span_days = (int) floor( ( $to_ts - $from_ts ) / DAY_IN_SECONDS ) + 1;
+		if ( $span_days > self::MAX_BULK_DAYS ) {
+			return new WP_Error(
+				'rm_feed_range_too_long',
+				sprintf(
+					/* translators: %d: maximale Anzahl Tage */
+					__( 'Der Zeitraum darf höchstens %d Tage umfassen.', 'reptilien-manager' ),
+					self::MAX_BULK_DAYS
+				)
+			);
+		}
+
+		$weekdays = array_values( array_unique( array_filter( array_map( 'absint', (array) $weekdays ) ) ) );
+		$weekdays = array_values( array_intersect( $weekdays, array_keys( self::weekdays() ) ) );
+
+		$dates = array();
+		for ( $ts = $from_ts; $ts <= $to_ts; $ts += DAY_IN_SECONDS ) {
+			if ( $weekdays && ! in_array( (int) gmdate( 'N', $ts ), $weekdays, true ) ) {
+				continue;
+			}
+			$dates[] = gmdate( 'Y-m-d', $ts );
+		}
+
+		if ( ! $dates ) {
+			return new WP_Error(
+				'rm_feed_no_dates',
+				__( 'Im gewählten Zeitraum liegt keiner der ausgewählten Wochentage.', 'reptilien-manager' )
+			);
+		}
+
+		return $dates;
+	}
+
+	/**
+	 * Legt für jeden übergebenen Tag einen eigenen Fütterungs-Eintrag an.
+	 *
+	 * Bewusst ein Eintrag je Tag (statt eines Sammeleintrags): die
+	 * Auswertungen (analyze_animal(), nutrient_balance(), cost_report())
+	 * zählen Einträge pro Tag, sodass eine Woche im Voraus erfasst genauso
+	 * bewertet wird wie sieben einzeln eingetragene Fütterungen.
+	 *
+	 * @param int[]    $animals Tier-IDs.
+	 * @param string[] $dates   Liste von Datumsangaben (Y-m-d).
+	 * @param string[] $foods   Futter-Schlüssel.
+	 * @param string   $amount  Mengenangabe.
+	 * @param string[] $supps   Supplement-Schlüssel.
+	 * @param string   $notes   Notizen.
+	 * @return array|WP_Error { created: int[], failed: int } oder Fehler.
+	 */
+	public static function create_logs( $animals, $dates, $foods, $amount = '', $supps = array(), $notes = '' ) {
+		$dates = array_values( array_unique( array_filter( (array) $dates ) ) );
+		if ( ! $dates ) {
+			return new WP_Error( 'rm_feed_no_dates', __( 'Kein Datum angegeben.', 'reptilien-manager' ) );
+		}
+
+		sort( $dates );
+
+		$created = array();
+		$failed  = 0;
+
+		foreach ( $dates as $date ) {
+			$result = self::create_log( $animals, $date, $foods, $amount, $supps, $notes );
+
+			if ( is_wp_error( $result ) ) {
+				// Fehlt Tier/Futter, scheitert jeder Tag gleichermaßen – dann
+				// direkt abbrechen statt N-mal denselben Fehler zu erzeugen.
+				if ( ! $created ) {
+					return $result;
+				}
+				++$failed;
+				continue;
+			}
+
+			$created[] = $result;
+		}
+
+		return array(
+			'created' => $created,
+			'failed'  => $failed,
+		);
+	}
+
+	/**
 	 * Schnell-Eintrag von der Futterplan-Seite verarbeiten.
 	 */
 	public static function handle_quick_feeding() {
@@ -1060,14 +1187,50 @@ class RM_Feeding {
 			exit;
 		}
 
-		$post_id = self::create_log( $animals, $date, $foods, $amount, $supps, $notes );
+		// Zeitraum-Modus: mehrere Tage bzw. wiederkehrende Wochentage auf
+		// einen Schlag erfassen.
+		$mode = isset( $_POST['rm_feed_mode'] ) ? sanitize_key( $_POST['rm_feed_mode'] ) : 'single';
 
-		if ( is_wp_error( $post_id ) ) {
+		if ( 'range' === $mode ) {
+			$from     = isset( $_POST['rm_feed_from'] ) ? sanitize_text_field( wp_unslash( $_POST['rm_feed_from'] ) ) : '';
+			$to       = isset( $_POST['rm_feed_to'] ) ? sanitize_text_field( wp_unslash( $_POST['rm_feed_to'] ) ) : '';
+			$weekdays = isset( $_POST['rm_feed_weekdays'] ) ? array_map( 'absint', wp_unslash( (array) $_POST['rm_feed_weekdays'] ) ) : array();
+
+			$dates = self::expand_dates( $from, $to, $weekdays );
+		} else {
+			$dates = array( $date );
+		}
+
+		if ( is_wp_error( $dates ) ) {
+			wp_safe_redirect(
+				add_query_arg(
+					array(
+						'rm_msg'    => 'range_error',
+						'rm_detail' => rawurlencode( $dates->get_error_message() ),
+					),
+					$redirect
+				)
+			);
+			exit;
+		}
+
+		$result = self::create_logs( $animals, $dates, $foods, $amount, $supps, $notes );
+
+		if ( is_wp_error( $result ) ) {
 			wp_safe_redirect( add_query_arg( 'rm_msg', 'error', $redirect ) );
 			exit;
 		}
 
-		wp_safe_redirect( add_query_arg( 'rm_msg', 'saved', $redirect ) );
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'rm_msg'    => 'saved',
+					'rm_count'  => count( $result['created'] ),
+					'rm_failed' => $result['failed'],
+				),
+				$redirect
+			)
+		);
 		exit;
 	}
 

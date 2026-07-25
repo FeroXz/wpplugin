@@ -890,3 +890,42 @@
 	background: #fee2e2;
 	color: #b91c1c;
 }
+
+/* Fütterung: Einzeltag vs. Zeitraum */
+.rm-fe-mode {
+	display: flex;
+	gap: 16px;
+	flex-wrap: wrap;
+	margin-bottom: 12px;
+}
+
+.rm-fe-mode label {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	cursor: pointer;
+	font-size: 0.9rem;
+}
+
+.rm-fe-weekdays {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 4px;
+}
+
+.rm-fe-weekday {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 6px 12px;
+	border: 1px solid var(--rm-border);
+	border-radius: var(--rm-radius-pill);
+	background: var(--rm-surface-alt);
+	font-size: 0.82rem;
+	cursor: pointer;
+}
+
+.rm-fe-weekday:hover {
+	border-color: var(--rm-primary);
+}

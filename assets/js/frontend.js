@@ -101,8 +101,37 @@
 		} );
 	}
 
+	/**
+	 * Fütterung: Umschaltung zwischen einzelnem Tag und Zeitraum.
+	 */
+	function initFeedModeSwitch() {
+		var radios = document.querySelectorAll( 'input[name="rm_feed_mode"]' );
+		if ( ! radios.length ) {
+			return;
+		}
+
+		function apply() {
+			var selected = document.querySelector( 'input[name="rm_feed_mode"]:checked' );
+			var mode = selected ? selected.value : 'single';
+
+			Array.prototype.forEach.call(
+				document.querySelectorAll( '[data-feed-mode]' ),
+				function ( block ) {
+					block.hidden = block.getAttribute( 'data-feed-mode' ) !== mode;
+				}
+			);
+		}
+
+		Array.prototype.forEach.call( radios, function ( radio ) {
+			radio.addEventListener( 'change', apply );
+		} );
+
+		apply();
+	}
+
 	ready( function () {
 		initSpeciesSwitch();
 		initCheckAll();
+		initFeedModeSwitch();
 	} );
 }() );

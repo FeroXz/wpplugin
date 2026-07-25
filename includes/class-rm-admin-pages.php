@@ -479,16 +479,40 @@ class RM_Admin_Pages {
 	public static function render_feeding_plan_page() {
 		$animals = RM_Post_Types::get_animals();
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reine Statusanzeige nach Redirect.
-		$msg = isset( $_GET['rm_msg'] ) ? sanitize_key( $_GET['rm_msg'] ) : '';
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- reine Statusanzeige nach Redirect.
+		$msg    = isset( $_GET['rm_msg'] ) ? sanitize_key( $_GET['rm_msg'] ) : '';
+		$count  = isset( $_GET['rm_count'] ) ? absint( $_GET['rm_count'] ) : 0;
+		$failed = isset( $_GET['rm_failed'] ) ? absint( $_GET['rm_failed'] ) : 0;
+		$detail = isset( $_GET['rm_detail'] ) ? sanitize_text_field( wp_unslash( $_GET['rm_detail'] ) ) : '';
+		// phpcs:enable
 		?>
 		<div class="wrap rm-wrap">
 			<h1><?php esc_html_e( 'Futterplan (Bartagamen)', 'reptilien-manager' ); ?></h1>
 
 			<?php if ( 'saved' === $msg ) : ?>
-				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Fütterung gespeichert.', 'reptilien-manager' ); ?></p></div>
+				<div class="notice notice-success is-dismissible">
+					<p>
+						<?php
+						printf(
+							/* translators: %d: Anzahl angelegter Fütterungen */
+							esc_html( _n( '%d Fütterung gespeichert.', '%d Fütterungen gespeichert.', max( 1, $count ), 'reptilien-manager' ) ),
+							esc_html( number_format_i18n( max( 1, $count ) ) )
+						);
+						if ( $failed ) {
+							echo ' ';
+							printf(
+								/* translators: %d: Anzahl fehlgeschlagener Tage */
+								esc_html( _n( '%d Tag konnte nicht gespeichert werden.', '%d Tage konnten nicht gespeichert werden.', $failed, 'reptilien-manager' ) ),
+								esc_html( number_format_i18n( $failed ) )
+							);
+						}
+						?>
+					</p>
+				</div>
 			<?php elseif ( 'missing' === $msg ) : ?>
 				<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Bitte mindestens ein Tier und eine Futterart auswählen.', 'reptilien-manager' ); ?></p></div>
+			<?php elseif ( 'range_error' === $msg ) : ?>
+				<div class="notice notice-error is-dismissible"><p><?php echo esc_html( $detail ? $detail : __( 'Der gewählte Zeitraum ist ungültig.', 'reptilien-manager' ) ); ?></p></div>
 			<?php elseif ( 'error' === $msg ) : ?>
 				<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Die Fütterung konnte nicht gespeichert werden.', 'reptilien-manager' ); ?></p></div>
 			<?php elseif ( 'prices_saved' === $msg ) : ?>
@@ -506,11 +530,54 @@ class RM_Admin_Pages {
 						<input type="hidden" name="action" value="rm_quick_feeding" />
 						<?php wp_nonce_field( 'rm_quick_feeding', 'rm_quick_feeding_nonce' ); ?>
 
-						<div class="rm-quick-grid">
+						<div class="rm-feed-mode">
+							<label>
+								<input type="radio" name="rm_feed_mode" value="single" checked="checked" />
+								<strong><?php esc_html_e( 'Einzelner Tag', 'reptilien-manager' ); ?></strong>
+							</label>
+							<label>
+								<input type="radio" name="rm_feed_mode" value="range" />
+								<strong><?php esc_html_e( 'Zeitraum / Woche', 'reptilien-manager' ); ?></strong>
+							</label>
+						</div>
+
+						<div class="rm-quick-grid" data-feed-mode="single">
 							<div class="rm-quick-field">
 								<label for="rm_feed_date"><strong><?php esc_html_e( 'Datum', 'reptilien-manager' ); ?></strong></label><br />
 								<input type="date" name="rm_feed_date" id="rm_feed_date" value="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>" />
 							</div>
+						</div>
+
+						<div class="rm-quick-grid" data-feed-mode="range" hidden>
+							<div class="rm-quick-field">
+								<label for="rm_feed_from"><strong><?php esc_html_e( 'Von', 'reptilien-manager' ); ?></strong></label><br />
+								<input type="date" name="rm_feed_from" id="rm_feed_from" value="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>" />
+							</div>
+							<div class="rm-quick-field">
+								<label for="rm_feed_to"><strong><?php esc_html_e( 'Bis', 'reptilien-manager' ); ?></strong></label><br />
+								<input type="date" name="rm_feed_to" id="rm_feed_to" value="<?php echo esc_attr( gmdate( 'Y-m-d', strtotime( current_time( 'Y-m-d' ) ) + 6 * DAY_IN_SECONDS ) ); ?>" />
+							</div>
+							<div class="rm-quick-field rm-quick-field--wide">
+								<strong><?php esc_html_e( 'Nur an diesen Wochentagen', 'reptilien-manager' ); ?></strong><br />
+								<div class="rm-weekday-row">
+									<?php foreach ( RM_Feeding::weekdays() as $num => $label ) : ?>
+										<label class="rm-weekday">
+											<input type="checkbox" name="rm_feed_weekdays[]" value="<?php echo esc_attr( $num ); ?>" />
+											<?php echo esc_html( $label ); ?>
+										</label>
+									<?php endforeach; ?>
+								</div>
+								<p class="description"><?php esc_html_e( 'Nichts angehakt = jeder Tag im Zeitraum. Es entsteht ein Eintrag pro Tag, damit die Auswertung stimmt.', 'reptilien-manager' ); ?></p>
+								<p class="rm-feed-presets">
+									<button type="button" class="button button-small" data-feed-preset="7"><?php esc_html_e( 'Nächste 7 Tage', 'reptilien-manager' ); ?></button>
+									<button type="button" class="button button-small" data-feed-preset="14"><?php esc_html_e( 'Nächste 14 Tage', 'reptilien-manager' ); ?></button>
+									<button type="button" class="button button-small" data-feed-preset="30"><?php esc_html_e( 'Nächste 30 Tage', 'reptilien-manager' ); ?></button>
+								</p>
+								<p class="rm-feed-preview description" data-feed-preview></p>
+							</div>
+						</div>
+
+						<div class="rm-quick-grid">
 							<div class="rm-quick-field">
 								<label for="rm_feed_amount"><strong><?php esc_html_e( 'Menge', 'reptilien-manager' ); ?></strong></label><br />
 								<input type="text" name="rm_feed_amount" id="rm_feed_amount" placeholder="<?php esc_attr_e( 'z. B. 5 Stück pro Tier', 'reptilien-manager' ); ?>" />

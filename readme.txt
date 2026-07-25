@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.19.1
+Stable tag: 1.20.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,7 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
 
 * Artgerechter, altersgerechter Futterplan – Bartagame (Allesfresser: Insekten + Grünfutter) und Grüner Leguan (strikter Pflanzenfresser: Blattgrün, kein tierisches Eiweiß, MBD-/Gicht-Hinweise) – mit Supplement-Empfehlungen (Calcium, Calcium+D3, Vitamine)
 * Schnell-Eintrag direkt auf der Futterplan-Seite: mehrere Tiere (oder „Alle Tiere“) und mehrere Futterarten gleichzeitig in einem Eintrag, plus Menge, Supplemente und Notizen
+* Serien-Erfassung: wahlweise einzelner Tag oder ganzer Zeitraum – „Von/Bis“ plus optionale Wochentags-Auswahl (z. B. jeden Mo/Mi/Fr für vier Wochen), mit Schnellwahl für die nächsten 7/14/30 Tage und Live-Vorschau, wie viele Einträge entstehen. Angelegt wird ein Eintrag pro Tag, damit Auswertung, Nährstoff-Bilanz und Kosten-Tracking unverändert korrekt rechnen (max. 90 Tage je Vorgang). Auch im Frontend-Formular ([reptilien-verwaltung], Reiter „Fütterung“) verfügbar
 * Fütterungs-Auswertung: vergleicht die protokollierten Fütterungen der letzten 14 Tage pro Tier mit dem art- und altersgerechten Optimum (Insekten-, Grünfutter- und Calcium-Frequenz pro Woche) und zeigt farbige Status-Chips (optimal / zu wenig / zu viel) – beim Leguan wird jede Insektenfütterung als „zu viel“ markiert
 * Nährstoff-Bilanz pro Tier: Calcium-, Vitamin-D3- und Vitamin-Frequenz gegen das art-/altersgerechte Ziel, inkl. Toxizitäts-Warnung bei Überdosierung (z. B. Vitamine/D3 zu häufig)
 * Kosten-Tracking: Preis je Futterart hinterlegen; monatliche Gesamtkosten, Prognose sowie Aufschlüsselung pro Futterart und pro Tier
@@ -210,6 +211,13 @@ Vollständige artspezifische Profile (Genetik-Rechner und Futterplan) gibt es f�
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.20.0 =
+* Neu: Fütterungen lassen sich für mehrere Tage oder eine ganze Woche auf einen Schlag eintragen. Im Schnell-Eintrag des Futterplans (und im Frontend-Formular) gibt es jetzt die Wahl zwischen „Einzelner Tag“ und „Zeitraum / Woche“ mit Von/Bis-Datum.
+* Optionale Wochentags-Auswahl innerhalb des Zeitraums – etwa „jeden Montag, Mittwoch und Freitag für die nächsten vier Wochen“. Ohne Auswahl wird jeder Tag im Zeitraum erfasst.
+* Schnellwahl-Schaltflächen für die nächsten 7, 14 und 30 Tage sowie eine Live-Vorschau, wie viele Einträge der gewählte Zeitraum erzeugt.
+* Es entsteht bewusst ein Eintrag pro Tag statt eines Sammeleintrags: Fütterungs-Auswertung, Nährstoff-Bilanz und Kosten-Tracking zählen pro Tag und rechnen dadurch unverändert korrekt. Pro Vorgang sind bis zu 90 Tage möglich.
+* Die Erfolgsmeldung nennt die Anzahl der angelegten Einträge; schlägt ein einzelner Tag fehl, laufen die übrigen durch und der Teilerfolg wird gemeldet.
 
 = 1.19.1 =
 * Fix (PWA, kritisch): Der Foto-Upload aus der App lief über das vollständige Speicherformular und setzte dabei alle nicht mitgesendeten Felder zurück – Geschlecht, Schlupfdatum, Herkunft, Länge und die komplette Genetik gingen verloren, das Tier wurde auf „privat“ gestellt. Der Upload nutzt jetzt den neuen, schmalen Endpunkt POST /wp-json/reptilien/v1/animals/{id}/photo, der ausschließlich das Profilfoto setzt.

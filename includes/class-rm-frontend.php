@@ -205,6 +205,7 @@ class RM_Frontend {
 			'fed'     => array( 'ok', __( 'Fütterung eingetragen.', 'reptilien-manager' ) ),
 			'denied'  => array( 'err', __( 'Keine Berechtigung.', 'reptilien-manager' ) ),
 			'missing' => array( 'err', __( 'Bitte mindestens ein Tier und eine Futterart wählen.', 'reptilien-manager' ) ),
+			'range_error' => array( 'err', __( 'Der gewählte Zeitraum ist ungültig (max. 90 Tage, und die gewählten Wochentage müssen darin vorkommen).', 'reptilien-manager' ) ),
 			'error'   => array( 'err', __( 'Speichern fehlgeschlagen.', 'reptilien-manager' ) ),
 		);
 		if ( isset( $map[ $msg ] ) ) {
@@ -450,11 +451,49 @@ class RM_Frontend {
 			<h3><?php esc_html_e( 'Supplemente', 'reptilien-manager' ); ?></h3>
 			<?php RM_Feeding::render_supplement_choices(); ?>
 
-			<div class="rm-fe-grid">
+			<h3><?php esc_html_e( 'Zeitraum', 'reptilien-manager' ); ?></h3>
+			<div class="rm-fe-mode">
+				<label>
+					<input type="radio" name="rm_feed_mode" value="single" checked="checked" />
+					<span><?php esc_html_e( 'Einzelner Tag', 'reptilien-manager' ); ?></span>
+				</label>
+				<label>
+					<input type="radio" name="rm_feed_mode" value="range" />
+					<span><?php esc_html_e( 'Mehrere Tage / Woche', 'reptilien-manager' ); ?></span>
+				</label>
+			</div>
+
+			<div class="rm-fe-grid" data-feed-mode="single">
 				<label class="rm-fe-field">
 					<span><?php esc_html_e( 'Datum', 'reptilien-manager' ); ?></span>
 					<input type="date" name="rm_feed_date" value="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>" />
 				</label>
+			</div>
+
+			<div class="rm-fe-grid" data-feed-mode="range" hidden>
+				<label class="rm-fe-field">
+					<span><?php esc_html_e( 'Von', 'reptilien-manager' ); ?></span>
+					<input type="date" name="rm_feed_from" value="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>" />
+				</label>
+				<label class="rm-fe-field">
+					<span><?php esc_html_e( 'Bis', 'reptilien-manager' ); ?></span>
+					<input type="date" name="rm_feed_to" value="<?php echo esc_attr( gmdate( 'Y-m-d', strtotime( current_time( 'Y-m-d' ) ) + 6 * DAY_IN_SECONDS ) ); ?>" />
+				</label>
+				<div class="rm-fe-field rm-fe-field--full">
+					<span><?php esc_html_e( 'Nur an diesen Wochentagen', 'reptilien-manager' ); ?></span>
+					<div class="rm-fe-weekdays">
+						<?php foreach ( RM_Feeding::weekdays() as $num => $label ) : ?>
+							<label class="rm-fe-weekday">
+								<input type="checkbox" name="rm_feed_weekdays[]" value="<?php echo esc_attr( $num ); ?>" />
+								<?php echo esc_html( $label ); ?>
+							</label>
+						<?php endforeach; ?>
+					</div>
+					<p class="rm-fe-morph-note"><?php esc_html_e( 'Nichts angehakt = jeder Tag im Zeitraum. Es entsteht ein Eintrag pro Tag.', 'reptilien-manager' ); ?></p>
+				</div>
+			</div>
+
+			<div class="rm-fe-grid">
 				<label class="rm-fe-field">
 					<span><?php esc_html_e( 'Menge', 'reptilien-manager' ); ?></span>
 					<input type="text" name="rm_feed_amount" placeholder="<?php esc_attr_e( 'z. B. 10 Heimchen', 'reptilien-manager' ); ?>" />
@@ -567,7 +606,24 @@ class RM_Frontend {
 			self::redirect( $redirect, 'missing' );
 		}
 
-		$result = RM_Feeding::create_log( $animals, $date, $foods, $amount, $supps, $notes );
+		// Zeitraum-Modus: einen Eintrag je Tag anlegen (siehe
+		// RM_Feeding::expand_dates() für die Wochentags-Logik).
+		$mode = isset( $_POST['rm_feed_mode'] ) ? sanitize_key( $_POST['rm_feed_mode'] ) : 'single';
+
+		if ( 'range' === $mode ) {
+			$from     = isset( $_POST['rm_feed_from'] ) ? sanitize_text_field( wp_unslash( $_POST['rm_feed_from'] ) ) : '';
+			$to       = isset( $_POST['rm_feed_to'] ) ? sanitize_text_field( wp_unslash( $_POST['rm_feed_to'] ) ) : '';
+			$weekdays = isset( $_POST['rm_feed_weekdays'] ) ? array_map( 'absint', (array) wp_unslash( $_POST['rm_feed_weekdays'] ) ) : array();
+
+			$dates = RM_Feeding::expand_dates( $from, $to, $weekdays );
+			if ( is_wp_error( $dates ) ) {
+				self::redirect( $redirect, 'range_error' );
+			}
+		} else {
+			$dates = array( $date ? $date : current_time( 'Y-m-d' ) );
+		}
+
+		$result = RM_Feeding::create_logs( $animals, $dates, $foods, $amount, $supps, $notes );
 
 		self::redirect( $redirect, is_wp_error( $result ) ? 'error' : 'fed' );
 	}

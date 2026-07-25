@@ -296,4 +296,79 @@ jQuery( function ( $ ) {
 	$( document ).on( 'change', '#rm_health_resolved', function () {
 		$( '.rm-health-resolved-date' ).toggle( $( this ).is( ':checked' ) );
 	} );
+
+	// --- Futterplan: Einzeltag vs. Zeitraum --------------------------------
+	function rmToIso( date ) {
+		var m = ( '0' + ( date.getMonth() + 1 ) ).slice( -2 );
+		var d = ( '0' + date.getDate() ).slice( -2 );
+		return date.getFullYear() + '-' + m + '-' + d;
+	}
+
+	/**
+	 * Zeigt vorab an, wie viele Einträge der gewählte Zeitraum erzeugt –
+	 * dieselbe Regel wie serverseitig in RM_Feeding::expand_dates().
+	 */
+	function rmUpdateFeedPreview() {
+		var $preview = $( '[data-feed-preview]' );
+		if ( ! $preview.length ) {
+			return;
+		}
+
+		var from = new Date( $( '#rm_feed_from' ).val() );
+		var to = new Date( $( '#rm_feed_to' ).val() );
+
+		if ( isNaN( from.getTime() ) || isNaN( to.getTime() ) ) {
+			$preview.text( '' );
+			return;
+		}
+		if ( from > to ) {
+			var swap = from;
+			from = to;
+			to = swap;
+		}
+
+		var weekdays = $( 'input[name="rm_feed_weekdays[]"]:checked' )
+			.map( function () { return parseInt( this.value, 10 ); } )
+			.get();
+
+		var days = 0;
+		var cursor = new Date( from.getTime() );
+		var guard = 0;
+		while ( cursor <= to && guard < 400 ) {
+			// getDay(): 0 = Sonntag; serverseitig gilt ISO (Montag = 1, Sonntag = 7).
+			var iso = 0 === cursor.getDay() ? 7 : cursor.getDay();
+			if ( ! weekdays.length || -1 !== weekdays.indexOf( iso ) ) {
+				days++;
+			}
+			cursor.setDate( cursor.getDate() + 1 );
+			guard++;
+		}
+
+		$preview.text(
+			1 === days
+				? rmAdmin.feedPreviewOne
+				: rmAdmin.feedPreviewMany.replace( '%d', days )
+		);
+	}
+
+	$( document ).on( 'change', 'input[name="rm_feed_mode"]', function () {
+		var mode = $( this ).val();
+		$( '[data-feed-mode]' ).each( function () {
+			$( this ).prop( 'hidden', $( this ).data( 'feed-mode' ) !== mode );
+		} );
+		rmUpdateFeedPreview();
+	} );
+
+	$( document ).on( 'click', '[data-feed-preset]', function () {
+		var days = parseInt( $( this ).data( 'feed-preset' ), 10 );
+		var today = new Date();
+		var end = new Date();
+		end.setDate( end.getDate() + days - 1 );
+
+		$( '#rm_feed_from' ).val( rmToIso( today ) );
+		$( '#rm_feed_to' ).val( rmToIso( end ) );
+		rmUpdateFeedPreview();
+	} );
+
+	$( document ).on( 'change', '#rm_feed_from, #rm_feed_to, input[name="rm_feed_weekdays[]"]', rmUpdateFeedPreview );
 } );

@@ -299,6 +299,66 @@
 	color: var(--rm-admin-ink);
 }
 
+/* Einzeltag vs. Zeitraum */
+.rm-feed-mode {
+	display: flex;
+	gap: 18px;
+	flex-wrap: wrap;
+	margin-bottom: 12px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--rm-admin-border);
+}
+
+.rm-feed-mode label {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	cursor: pointer;
+}
+
+.rm-quick-field--wide {
+	flex: 1 1 100%;
+}
+
+.rm-weekday-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 4px;
+}
+
+.rm-weekday {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 10px;
+	border: 1px solid var(--rm-admin-border);
+	border-radius: var(--rm-admin-radius-pill);
+	background: #fff;
+	cursor: pointer;
+	font-size: 12.5px;
+}
+
+.rm-weekday:hover {
+	border-color: var(--rm-admin-primary);
+}
+
+.rm-feed-presets {
+	display: flex;
+	gap: 6px;
+	flex-wrap: wrap;
+	margin: 8px 0 4px;
+}
+
+.rm-feed-preview:not(:empty) {
+	display: inline-block;
+	padding: 4px 12px;
+	border-radius: var(--rm-admin-radius-pill);
+	background: var(--rm-admin-surface-2);
+	color: var(--rm-admin-primary-dark);
+	font-weight: 600;
+}
+
 /* Auswertungs-Chips */
 .rm-analysis {
 	display: flex;
