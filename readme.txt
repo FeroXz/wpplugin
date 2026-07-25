@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.16.0
+Stable tag: 1.17.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -63,6 +63,10 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
 * Übersichtsseite „Gesundheits-Logbuch“: alle Einträge, filterbar nach Tier, Symptom und Status (aktiv/gelöst), neueste zuerst
 * Im Tierprofil ([reptil id="123"]) erscheint für den Tier-Besitzer eine Timeline der letzten 5 Einträge inkl. Kurzfassung „Letzte Symptome: X, Y (vor 30 Tagen)“ – für alle anderen Besucher unsichtbar
 * Streng auf den Tier-Besitzer beschränkt: nur wer das zugehörige Tier verwaltet (bzw. `edit_others_posts` hat), darf dessen Gesundheitsdaten lesen oder schreiben
+* Gesundheits-Trends (Reptilien → Gesundheit: Trends) mit wählbarem Zeitraum: Balkendiagramm der häufigsten Symptome, Zeitverlauf über die Monate als Liniendiagramm, Behandlungs-Erfolgsrate (Anteil ausgeheilter Fälle unter den behandelten), Tabelle der am häufigsten betroffenen Tiere inkl. Morph
+* Automatische Alerts „Tier XY hatte 3x Stau dieses Jahr“, sobald ein Tier ein Symptom im laufenden Kalenderjahr eine wählbare Mindestanzahl erreicht
+* Tierarzt-Kontakt-Verzeichnis: Name, Telefon, E-Mail und Notizen hinterlegen; das Feld „Tierarzt-Kontakt“ am Eintrag schlägt gespeicherte Kontakte automatisch vor
+* Trend-Auswertung ist 1 Stunde im Objekt-Cache gehalten (nur mit persistentem Objekt-Cache-Plugin wirksam über mehrere Requests hinweg)
 
 **Frontend**
 
@@ -118,6 +122,12 @@ Vollständige artspezifische Profile (Genetik-Rechner und Futterplan) gibt es f�
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.17.0 =
+* Neu: Gesundheits-Trends (Reptilien → Gesundheit: Trends) – häufigste Symptome (Balkendiagramm), Symptom-Häufigkeit im Zeitverlauf der letzten Monate (Liniendiagramm), Behandlungs-Erfolgsrate und Tabelle der am häufigsten betroffenen Tiere/Morphe, mit wählbarem Zeitraum (Von/Bis).
+* Neu: automatische Alerts „Tier XY hatte Nx Symptom dieses Jahr“, sobald ein Tier ein Symptom im laufenden Kalenderjahr eine Mindestanzahl erreicht.
+* Neu: Tierarzt-Kontakt-Verzeichnis (Name, Telefon, E-Mail, Notizen) – das Tierarzt-Kontakt-Feld am Gesundheits-Eintrag schlägt gespeicherte Kontakte automatisch vor.
+* Performance: die Trend-Auswertung läuft über eine einzelne Abfrage pro Zeitraum und wird 1 Stunde im Objekt-Cache gehalten (RM_Health_Stats, gleiches Muster wie der Genetik-Rechner-Cache).
 
 = 1.16.0 =
 * Neu: Gesundheits-Logbuch je Tier – Symptome (Stau, Bindehautentzündung, Zahnstein, Durchfall, Apathie), Diagnose, Behandlung, Tierarzt-Kontakt und Ausgeheilt-Status mit Ausheilungsdatum. Eigener Eintragstyp mit Auto-Titel „Gesundheit [Tier] [Datum]“.

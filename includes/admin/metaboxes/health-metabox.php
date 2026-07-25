@@ -111,7 +111,17 @@ class RM_Health_Metabox {
 			</tr>
 			<tr>
 				<th><label for="rm_health_vet_contact"><?php esc_html_e( 'Tierarzt-Kontakt', 'reptilien-manager' ); ?></label></th>
-				<td><input type="text" name="rm_health_vet_contact" id="rm_health_vet_contact" class="regular-text" value="<?php echo esc_attr( $vet ); ?>" /></td>
+				<td>
+					<input type="text" name="rm_health_vet_contact" id="rm_health_vet_contact" class="regular-text" list="rm-health-vet-contacts" value="<?php echo esc_attr( $vet ); ?>" />
+					<?php if ( class_exists( 'RM_Health_Trends' ) ) : ?>
+						<datalist id="rm-health-vet-contacts">
+							<?php foreach ( RM_Health_Trends::vet_contacts() as $contact ) : ?>
+								<option value="<?php echo esc_attr( $contact['name'] . ( $contact['phone'] ? ' – ' . $contact['phone'] : '' ) ); ?>"></option>
+							<?php endforeach; ?>
+						</datalist>
+						<p class="description"><?php esc_html_e( 'Vorschläge aus dem Tierarzt-Kontakt-Verzeichnis (Reptilien → Gesundheit: Trends).', 'reptilien-manager' ); ?></p>
+					<?php endif; ?>
+				</td>
 			</tr>
 			<tr>
 				<th><label for="rm_health_resolved"><?php esc_html_e( 'Status', 'reptilien-manager' ); ?></label></th>

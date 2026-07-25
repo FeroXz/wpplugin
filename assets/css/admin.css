@@ -558,3 +558,72 @@
 	display: flex;
 	gap: 8px;
 }
+
+/* ============================================================
+   Gesundheits-Trends (Reptilien → Gesundheit: Trends)
+   ============================================================ */
+.rm-stat-tiles {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 16px;
+	margin: 20px 0;
+	max-width: 900px;
+}
+
+.rm-stat-tile {
+	background: var(--rm-admin-surface-2);
+	border-radius: var(--rm-admin-radius);
+	padding: 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.rm-stat-tile__value {
+	font-size: 1.7rem;
+	font-weight: 700;
+	color: var(--rm-admin-ink);
+}
+
+.rm-stat-tile__label {
+	color: var(--rm-admin-muted);
+	font-size: 0.85rem;
+}
+
+.rm-dashboard-charts {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 16px;
+	margin-bottom: 24px;
+	max-width: 1100px;
+}
+
+.rm-chart-card {
+	background: #fff;
+	border: 1px solid var(--rm-admin-border);
+	border-radius: var(--rm-admin-radius);
+	padding: 16px;
+}
+
+.rm-chart-card--wide {
+	grid-column: 1 / -1;
+}
+
+.rm-chart-card h3 {
+	margin: 0 0 10px;
+	font-size: 1rem;
+	color: var(--rm-admin-ink);
+}
+
+.rm-chart-card canvas {
+	max-height: 260px;
+}
+
+.rm-health-alerts {
+	margin: 16px 0;
+	max-width: 900px;
+}
+
+.rm-health-alert {
+	margin: 0 0 8px;
+}
