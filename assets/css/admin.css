@@ -687,3 +687,79 @@
 .rm-health-alert {
 	margin: 0 0 8px;
 }
+
+/* ============================================================
+   Terrarien, Technik & Strom
+   ============================================================ */
+.rm-device-table {
+	max-width: 900px;
+	margin-bottom: 10px;
+}
+
+.rm-device-table td,
+.rm-device-table th {
+	vertical-align: middle;
+}
+
+.rm-device-remove {
+	color: #b91c1c;
+	font-size: 18px;
+	text-decoration: none;
+}
+
+.rm-power-summary {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin: 12px 0;
+}
+
+.rm-power-summary span {
+	display: inline-flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 10px 16px;
+	border-radius: var(--rm-admin-radius);
+	background: var(--rm-admin-surface-2);
+	color: var(--rm-admin-muted);
+	font-size: 12px;
+	min-width: 120px;
+}
+
+.rm-power-summary strong {
+	font-size: 18px;
+	color: var(--rm-admin-ink);
+}
+
+.rm-power-calc {
+	max-width: 640px;
+}
+
+.rm-occupant-hint {
+	color: var(--rm-admin-muted);
+	font-size: 11.5px;
+}
+
+.rm-occupancy-warnings {
+	margin-top: 10px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.rm-occupancy-warnings .rm-status {
+	white-space: normal;
+	line-height: 1.5;
+	padding: 8px 12px;
+}
+
+.rm-unassigned-list {
+	list-style: disc;
+	margin-left: 20px;
+}
+
+.rm-placeholder-list {
+	list-style: disc;
+	margin: 4px 0 8px 20px;
+	color: var(--rm-admin-muted);
+}

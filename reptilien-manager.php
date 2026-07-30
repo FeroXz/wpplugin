@@ -3,7 +3,7 @@
  * Plugin Name:       Reptilien Manager
  * Plugin URI:        https://github.com/FeroXz/wpplugin
  * Description:       Verwaltung von Reptilien – Bartagame (Pogona vitticeps) und Grüner Leguan (Iguana iguana). Eigene Tiere mit Fotos und allen wichtigen Daten erfassen, Verpaarungen planen inkl. artspezifischer Genetik-Vorschau der Jungtiere sowie artgerechte Futterplanung und Fütterungsprotokoll.
- * Version:           1.20.0
+ * Version:           1.21.0
  * Author:            FeroXz
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'RM_VERSION', '1.20.0' );
+define( 'RM_VERSION', '1.21.0' );
 define( 'RM_PLUGIN_FILE', __FILE__ );
 define( 'RM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'RM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -65,6 +65,11 @@ require_once RM_PLUGIN_DIR . 'includes/classes/class-openapi-generator.php';
 require_once RM_PLUGIN_DIR . 'includes/frontend/class-pwa-assets.php';
 require_once RM_PLUGIN_DIR . 'includes/frontend/class-pwa-shortcode.php';
 
+// Terrarien, Strom und automatische Texte (v1.21.0).
+require_once RM_PLUGIN_DIR . 'includes/modules/terrarium/class-rm-terrarium.php';
+require_once RM_PLUGIN_DIR . 'includes/admin/pages/terrarium-page.php';
+require_once RM_PLUGIN_DIR . 'includes/modules/autotext/class-rm-autotext.php';
+
 /**
  * Plugin bootstrap.
  */
@@ -107,6 +112,9 @@ final class Reptilien_Manager {
 		RM_OpenAPI_Generator::init();
 		RM_PWA_Assets::init();
 		RM_PWA_Shortcode::init();
+		RM_Terrarium::init();
+		RM_Terrarium_Page::init();
+		RM_Autotext::init();
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_assets' ) );
 
@@ -125,8 +133,8 @@ final class Reptilien_Manager {
 	 */
 	public function admin_assets( $hook ) {
 		$screen = get_current_screen();
-		$our_types = array( 'rm_animal', 'rm_pairing', 'rm_feeding_log', RM_Health_Entry::POST_TYPE );
-		$our_pages = array( 'rm_animal_page_rm-genetics', 'rm_animal_page_rm-feeding-plan', 'rm_animal_page_rm-health-tracking', 'rm_animal_page_rm-health-trends', 'rm_animal_page_rm-api' );
+		$our_types = array( 'rm_animal', 'rm_pairing', 'rm_feeding_log', RM_Health_Entry::POST_TYPE, RM_Terrarium::POST_TYPE );
+		$our_pages = array( 'rm_animal_page_rm-genetics', 'rm_animal_page_rm-feeding-plan', 'rm_animal_page_rm-health-tracking', 'rm_animal_page_rm-health-trends', 'rm_animal_page_rm-api', 'rm_animal_page_rm-terrariums', 'rm_animal_page_rm-autotext' );
 
 		$is_ours = ( $screen && in_array( $screen->post_type, $our_types, true ) )
 			|| in_array( $hook, $our_pages, true );
@@ -190,6 +198,7 @@ final class Reptilien_Manager {
 	public static function activate() {
 		RM_Post_Types::register();
 		RM_Health_Entry::register();
+		RM_Terrarium::register();
 		RM_Roles::add_role();
 		RM_Notifications::schedule();
 		flush_rewrite_rules();

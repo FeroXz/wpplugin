@@ -275,6 +275,41 @@ class RM_Animal_Meta {
 					<p class="description"><?php esc_html_e( 'Nur öffentliche Tiere erscheinen in den Shortcodes (Liste, Profil, Dashboard). Der Beitrag selbst bleibt davon unberührt.', 'reptilien-manager' ); ?></p>
 				</td>
 			</tr>
+			<?php if ( class_exists( 'RM_Terrarium' ) ) : ?>
+				<?php
+				$terrarium_args = array(
+					'post_type'      => RM_Terrarium::POST_TYPE,
+					'posts_per_page' => -1,
+					'post_status'    => array( 'publish', 'draft', 'private', 'pending' ),
+					'orderby'        => 'title',
+					'order'          => 'ASC',
+				);
+				if ( class_exists( 'RM_Roles' ) ) {
+					$terrarium_args = array_merge( $terrarium_args, RM_Roles::author_query_args() );
+				}
+				$terrariums   = get_posts( $terrarium_args );
+				$current_terr = RM_Terrarium::for_animal( $post->ID );
+				?>
+				<tr>
+					<th><label for="rm_terrarium"><?php esc_html_e( 'Terrarium', 'reptilien-manager' ); ?></label></th>
+					<td>
+						<?php if ( ! $terrariums ) : ?>
+							<p class="description">
+								<?php esc_html_e( 'Noch kein Terrarium angelegt.', 'reptilien-manager' ); ?>
+								<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=' . RM_Terrarium::POST_TYPE ) ); ?>"><?php esc_html_e( 'Terrarium anlegen', 'reptilien-manager' ); ?></a>
+							</p>
+						<?php else : ?>
+							<select name="rm_terrarium" id="rm_terrarium">
+								<option value="0"><?php esc_html_e( '– keinem Terrarium zugeordnet –', 'reptilien-manager' ); ?></option>
+								<?php foreach ( $terrariums as $terrarium ) : ?>
+									<option value="<?php echo esc_attr( $terrarium->ID ); ?>" <?php selected( $current_terr, $terrarium->ID ); ?>><?php echo esc_html( $terrarium->post_title ); ?></option>
+								<?php endforeach; ?>
+							</select>
+							<p class="description"><?php esc_html_e( 'Ein Tier steht immer nur in einem Terrarium. Besatz und Stromkosten siehst du unter „Terrarien & Strom“.', 'reptilien-manager' ); ?></p>
+						<?php endif; ?>
+					</td>
+				</tr>
+			<?php endif; ?>
 			<tr>
 				<th><label for="rm_birth"><?php esc_html_e( 'Schlupfdatum', 'reptilien-manager' ); ?></label></th>
 				<td>
@@ -625,6 +660,21 @@ class RM_Animal_Meta {
 
 		// Sichtbarkeit (Checkbox nicht gesetzt = privat).
 		update_post_meta( $post_id, '_rm_public', isset( $_POST['rm_public'] ) ? '1' : '0' );
+
+		// Terrarium-Zuordnung (eine ID; 0 = keinem Terrarium zugeordnet).
+		if ( isset( $_POST['rm_terrarium'] ) && class_exists( 'RM_Terrarium' ) ) {
+			$terrarium_id = absint( $_POST['rm_terrarium'] );
+			if ( $terrarium_id && RM_Terrarium::POST_TYPE === get_post_type( $terrarium_id ) ) {
+				update_post_meta( $post_id, RM_Terrarium::ANIMAL_META, $terrarium_id );
+			} else {
+				delete_post_meta( $post_id, RM_Terrarium::ANIMAL_META );
+			}
+		}
+
+		// Schalter für die automatische Titel-/Textpflege.
+		if ( class_exists( 'RM_Autotext' ) ) {
+			RM_Autotext::save_toggle( $post_id );
+		}
 
 		// Abstammung (eigene Nachzucht).
 		$parent_pairing = isset( $_POST['rm_parent_pairing'] ) ? absint( $_POST['rm_parent_pairing'] ) : 0;

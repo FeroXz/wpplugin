@@ -371,4 +371,68 @@ jQuery( function ( $ ) {
 	} );
 
 	$( document ).on( 'change', '#rm_feed_from, #rm_feed_to, input[name="rm_feed_weekdays[]"]', rmUpdateFeedPreview );
+
+	// --- Terrarium: Technik-Zeilen ----------------------------------------
+	$( document ).on( 'click', '#rm-device-add', function () {
+		var $preset = $( '#rm-device-preset option:selected' );
+		var label = $preset.data( 'label' ) || '';
+		var watt = $preset.data( 'watt' ) || '';
+		var hours = $preset.data( 'hours' ) || '';
+
+		$( '#rm-device-rows' ).append(
+			'<tr class="rm-device-row">' +
+				'<td><input type="text" name="rm_device_label[]" class="regular-text" value="' + rmEscapeAttr( label ) + '" /></td>' +
+				'<td><input type="number" step="0.1" min="0" name="rm_device_watt[]" class="small-text" value="' + rmEscapeAttr( watt ) + '" /></td>' +
+				'<td><input type="number" step="0.5" min="0" max="24" name="rm_device_hours[]" class="small-text" value="' + rmEscapeAttr( hours ) + '" /></td>' +
+				'<td><input type="number" step="1" min="0" max="100" name="rm_device_duty[]" class="small-text" value="100" /></td>' +
+				'<td>–</td><td>–</td>' +
+				'<td><button type="button" class="button-link rm-device-remove">&times;</button></td>' +
+			'</tr>'
+		);
+		$( '#rm-device-preset' ).val( '' );
+	} );
+
+	$( document ).on( 'click', '.rm-device-remove', function () {
+		$( this ).closest( 'tr' ).remove();
+	} );
+
+	function rmEscapeAttr( value ) {
+		return String( value ).replace( /&/g, '&amp;' ).replace( /"/g, '&quot;' ).replace( /</g, '&lt;' );
+	}
+
+	// --- Strom-Kalkulator (freie Berechnung) ------------------------------
+	function rmUpdatePowerCalc() {
+		var $result = $( '#rm-calc-result' );
+		if ( ! $result.length ) {
+			return;
+		}
+
+		var watt = parseFloat( $( '#rm_calc_watt' ).val() );
+		var hours = parseFloat( $( '#rm_calc_hours' ).val() );
+		var duty = parseFloat( $( '#rm_calc_duty' ).val() );
+		var price = parseFloat( $( '#rm_calc_price' ).val() );
+
+		if ( isNaN( watt ) || isNaN( hours ) || isNaN( price ) ) {
+			$result.text( $result.data( 'empty' ) );
+			return;
+		}
+		if ( isNaN( duty ) ) {
+			duty = 100;
+		}
+
+		// Identische Formel wie RM_Terrarium::device_consumption().
+		var kwhDay = watt * hours * ( duty / 100 ) / 1000;
+		var kwhMonth = kwhDay * 30.44;
+		var kwhYear = kwhDay * 365.25;
+
+		$result.html(
+			'<span><strong>' + kwhMonth.toFixed( 1 ) + ' kWh</strong> pro Monat</span>' +
+			'<span><strong>' + ( kwhMonth * price ).toFixed( 2 ) + ' €</strong> pro Monat</span>' +
+			'<span><strong>' + kwhYear.toFixed( 1 ) + ' kWh</strong> pro Jahr</span>' +
+			'<span><strong>' + ( kwhYear * price ).toFixed( 2 ) + ' €</strong> pro Jahr</span>'
+		);
+	}
+
+	$( document ).on( 'input change', '#rm_calc_watt, #rm_calc_hours, #rm_calc_duty, #rm_calc_price', rmUpdatePowerCalc );
+	rmUpdatePowerCalc();
 } );

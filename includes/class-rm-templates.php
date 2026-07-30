@@ -120,23 +120,7 @@ class RM_Templates {
 			wp_send_json_error( array( 'message' => __( 'Unbekannte Vorlage.', 'reptilien-manager' ) ), 400 );
 		}
 
-		$data = self::collect_data( $post_id );
-
-		switch ( $template ) {
-			case 'portrait':
-				$content = self::render_portrait( $data );
-				break;
-			case 'zucht':
-				$content = self::render_zucht( $data );
-				break;
-			case 'kurz':
-				$content = self::render_kurz( $data );
-				break;
-			case 'steckbrief':
-			default:
-				$content = self::render_steckbrief( $data );
-				break;
-		}
+		$content = self::render( $template, self::collect_data( $post_id ) );
 
 		wp_send_json_success( array( 'content' => $content ) );
 	}
@@ -300,6 +284,90 @@ class RM_Templates {
 		}
 
 		return $list;
+	}
+
+	/**
+	 * Rendert eine Vorlage aus einem Datensatz.
+	 *
+	 * @param string $template Vorlagen-Schlüssel.
+	 * @param array  $data     Datensatz aus collect_data()/collect_stored().
+	 * @return string Gutenberg-Blockmarkup.
+	 */
+	public static function render( $template, $data ) {
+		switch ( $template ) {
+			case 'portrait':
+				return self::render_portrait( $data );
+			case 'zucht':
+				return self::render_zucht( $data );
+			case 'kurz':
+				return self::render_kurz( $data );
+			case 'steckbrief':
+			default:
+				return self::render_steckbrief( $data );
+		}
+	}
+
+	/**
+	 * Wie collect_data(), aber aus den bereits gespeicherten Beitragsdaten
+	 * statt aus $_POST. Nötig für die automatische Text-Generierung, die auch
+	 * bei Speichervorgängen ohne Backend-Formular greifen muss (Frontend,
+	 * REST-API, PWA, automatisch angelegte Nachzuchten).
+	 *
+	 * @param int $post_id Beitrags-ID des Tieres.
+	 * @return array
+	 */
+	public static function collect_stored( $post_id ) {
+		$post  = get_post( $post_id );
+		$title = $post ? $post->post_title : '';
+		if ( '' === trim( $title ) ) {
+			$title = __( 'Unser Tier', 'reptilien-manager' );
+		}
+
+		$sex_key = (string) get_post_meta( $post_id, '_rm_sex', true );
+		$sexes   = RM_Animal_Meta::sexes();
+		$birth   = (string) get_post_meta( $post_id, '_rm_birth', true );
+
+		$species_key = RM_Species::key_for_animal( $post_id );
+		$states      = RM_Genetics::get_animal_genes_for_species( $post_id, $species_key );
+
+		$weights = get_post_meta( $post_id, '_rm_weights', true );
+		$weights = is_array( $weights ) ? $weights : array();
+		usort(
+			$weights,
+			static function ( $a, $b ) {
+				return strcmp( isset( $a['date'] ) ? $a['date'] : '', isset( $b['date'] ) ? $b['date'] : '' );
+			}
+		);
+
+		$gallery = get_post_meta( $post_id, '_rm_gallery', true );
+		$gallery = is_array( $gallery ) ? array_map( 'absint', $gallery ) : array();
+
+		$species_names = wp_get_post_terms( $post_id, 'rm_species', array( 'fields' => 'names' ) );
+
+		return array(
+			'title'       => $title,
+			'sex_key'     => $sex_key,
+			'sex_label'   => isset( $sexes[ $sex_key ] ) ? $sexes[ $sex_key ] : '',
+			'birth'       => $birth,
+			'age_label'   => $birth ? RM_Animal_Meta::age_label( $birth ) : '',
+			'origin'      => (string) get_post_meta( $post_id, '_rm_origin', true ),
+			'acquired'    => (string) get_post_meta( $post_id, '_rm_acquired', true ),
+			'identifier'  => (string) get_post_meta( $post_id, '_rm_identifier', true ),
+			'length'      => (string) get_post_meta( $post_id, '_rm_length', true ),
+			'food_notes'  => (string) get_post_meta( $post_id, '_rm_food_notes', true ),
+			'gene_states' => $states,
+			'species_key' => $species_key,
+			'morph'       => RM_Genetics::morph_label_from_states( $states, $species_key ),
+			'weights'     => array_values( $weights ),
+			'featured_id' => (int) get_post_thumbnail_id( $post_id ),
+			'gallery'     => array_values( array_filter( array_unique( $gallery ) ) ),
+			'species'     => is_array( $species_names ) ? implode( ', ', $species_names ) : '',
+			'parent'      => self::parent_info(
+				(int) get_post_meta( $post_id, '_rm_parent_pairing', true ),
+				(int) get_post_meta( $post_id, '_rm_clutch', true )
+			),
+			'pairings'    => self::animal_pairings( $post_id ),
+		);
 	}
 
 	/* ---------------------------------------------------------------------

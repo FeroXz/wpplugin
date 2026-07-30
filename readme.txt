@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.20.0
+Stable tag: 1.21.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,25 @@ Reptilien Manager hilft Haltern und Züchtern von Reptilien bei der Verwaltung i
 * Kosten-Tracking: Preis je Futterart hinterlegen; monatliche Gesamtkosten, Prognose sowie Aufschlüsselung pro Futterart und pro Tier
 * Fütterungsprotokoll mit automatisch erzeugten Titeln („Fütterung 24.07.2026 – Alle Tiere“)
 * Übersichtsseite mit Empfehlung, Auswertung, Nährstoff-Bilanz und letzter Fütterung pro Tier
+
+**Terrarien, Besatz & Strom**
+
+* Eigener Inhaltstyp „Terrarien“: Maße (L × B × H mit automatisch berechnetem Volumen), Bauart, Standort/Raum und Notizen
+* Besatz-Verwaltung: Tiere werden einem Terrarium zugeordnet – wahlweise von der Terrarium-Seite (Mehrfachauswahl) oder direkt in den Stammdaten des Tieres. Ein Tier kann systembedingt immer nur in einem Terrarium stehen; eine Zuordnung zieht es automatisch aus dem bisherigen ab
+* Haltungs-Hinweise: warnt bei Vergesellschaftung (Bartagamen und Grüne Leguane sind Einzelgänger) und wenn das Terrarium die empfohlenen Mindestmaße für die gehaltene Art unterschreitet (Bartagame 150 × 80 × 80 cm, Grüner Leguan 300 × 150 × 200 cm)
+* Technik je Terrarium: Geräteliste mit Leistung (W), Betriebsstunden pro Tag und Einschaltdauer in Prozent – letztere bildet Thermostat-/Dimmer-Betrieb ab, bei dem ein Gerät nur einen Teil der Zeit tatsächlich Strom zieht. Vorlagen für typische Technik (Wärmespot, UV-Metalldampflampe, T5, LED, Heizmatte) sind hinterlegt
+* Strom-Kalkulation: kWh und Kosten je Gerät, je Terrarium und als Gesamtsumme über alle Terrarien – pro Monat und pro Jahr, auf Basis eines frei hinterlegbaren Strompreises (€/kWh)
+* Freier Strom-Kalkulator auf der Seite „Terrarien & Strom“ zum Durchrechnen einzelner Geräte, ohne sie einem Terrarium zuzuordnen (z. B. um zwei Lampen zu vergleichen)
+* Übersicht „Tiere ohne Terrarium“, damit keine Zuordnung vergessen wird
+
+**Automatische Titel & Texte**
+
+* Beitragstitel und -text werden auf Wunsch automatisch aus den Tierdaten erzeugt und bei jeder Änderung aktualisiert – etwa wenn sich Morph oder Geschlecht ändern
+* Frei konfigurierbares Titel-Muster mit Platzhaltern: `{name}`, `{morph}`, `{sex}` (Zuchtnotation 1.0 / 0.1 / 0.0.1), `{species}`, `{year}`, `{identifier}`. Leere Platzhalter werden samt überflüssiger Trennzeichen automatisch entfernt
+* Der Text nutzt die vorhandenen Beitrags-Vorlagen (Steckbrief, Porträt, Zuchttier-Präsentation, Kurzprofil) – die gewünschte Vorlage ist global wählbar
+* Niemals destruktiv: sobald du einen Titel oder Text von Hand änderst, lässt die Automatik ihn dauerhaft in Ruhe. Sie erkennt das daran, dass der Inhalt nicht mehr dem entspricht, was sie zuletzt selbst erzeugt hat
+* Pro Tier ein- und ausschaltbar (Seitenleiste), global vorbelegbar unter „Reptilien → Titel & Text“
+* Der „Rufname“ bleibt als eigenes Feld erhalten, damit der generierte Titel jederzeit rekonstruiert werden kann
 
 **Gesundheits-Logbuch**
 
@@ -211,6 +230,15 @@ Vollständige artspezifische Profile (Genetik-Rechner und Futterplan) gibt es f�
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.21.0 =
+* Neu: Terrarien-Verwaltung als eigener Inhaltstyp – Maße mit automatisch berechnetem Volumen, Bauart, Standort und Notizen.
+* Neu: Besatz-Verwaltung. Tiere lassen sich einem Terrarium zuordnen, wahlweise von der Terrarium-Seite oder in den Stammdaten des Tieres. Ein Tier steht systembedingt immer nur in einem Terrarium.
+* Neu: Haltungs-Hinweise – warnt bei Vergesellschaftung (Bartagamen und Grüne Leguane sind Einzelgänger) und bei Unterschreitung der empfohlenen Mindestmaße für die jeweilige Art.
+* Neu: Strom-Kalkulator. Je Terrarium lässt sich die Technik mit Leistung, Betriebsstunden und Einschaltdauer erfassen; daraus werden kWh und Kosten pro Gerät, Terrarium und insgesamt berechnet (monatlich und jährlich). Zusätzlich ein freier Kalkulator zum Durchrechnen einzelner Geräte sowie Vorlagen für typische Terrarien-Technik.
+* Neu: Automatische Titel- und Text-Generierung für Tiere. Der Titel folgt einem frei konfigurierbaren Muster mit Platzhaltern, der Text nutzt die vorhandenen Beitrags-Vorlagen. Beides aktualisiert sich mit den Tierdaten.
+* Die Automatik überschreibt niemals manuell geänderte Titel oder Texte: sie merkt sich, was sie zuletzt selbst erzeugt hat, und hält sich fern, sobald der Inhalt davon abweicht. Pro Tier ein-/ausschaltbar.
+* Intern: RM_Templates::render() und ::collect_stored() erlauben es, Vorlagen auch aus gespeicherten Daten zu rendern (bisher nur aus Formularwerten) – Voraussetzung dafür, dass die Automatik auch bei Frontend-, REST- und PWA-Speicherungen greift.
 
 = 1.20.0 =
 * Neu: Fütterungen lassen sich für mehrere Tage oder eine ganze Woche auf einen Schlag eintragen. Im Schnell-Eintrag des Futterplans (und im Frontend-Formular) gibt es jetzt die Wahl zwischen „Einzelner Tag“ und „Zeitraum / Woche“ mit Von/Bis-Datum.
