@@ -35,6 +35,7 @@ class RM_Terrarium {
 		add_action( 'save_post_' . self::POST_TYPE, array( __CLASS__, 'save' ), 10, 2 );
 		add_filter( 'manage_' . self::POST_TYPE . '_posts_columns', array( __CLASS__, 'admin_columns' ) );
 		add_action( 'manage_' . self::POST_TYPE . '_posts_custom_column', array( __CLASS__, 'admin_column_content' ), 10, 2 );
+		add_action( 'before_delete_post', array( __CLASS__, 'cleanup_on_delete' ) );
 	}
 
 	public static function register() {
@@ -288,11 +289,41 @@ class RM_Terrarium {
 	/**
 	 * Terrarium eines Tieres.
 	 *
+	 * Prüft mit, ob das hinterlegte Terrarium überhaupt noch existiert: wurde
+	 * es gelöscht oder in den Papierkorb verschoben, gilt das Tier wieder als
+	 * nicht zugeordnet. Ohne diese Prüfung würde es aus der Terrarien-Übersicht
+	 * *und* aus der Liste „Tiere ohne Terrarium“ verschwinden.
+	 *
 	 * @param int $animal_id Beitrags-ID des Tieres.
 	 * @return int 0, wenn keines zugeordnet ist.
 	 */
 	public static function for_animal( $animal_id ) {
-		return (int) get_post_meta( $animal_id, self::ANIMAL_META, true );
+		$terrarium_id = (int) get_post_meta( $animal_id, self::ANIMAL_META, true );
+		if ( ! $terrarium_id ) {
+			return 0;
+		}
+
+		$terrarium = get_post( $terrarium_id );
+		if ( ! $terrarium || self::POST_TYPE !== $terrarium->post_type || 'trash' === $terrarium->post_status ) {
+			return 0;
+		}
+
+		return $terrarium_id;
+	}
+
+	/**
+	 * Räumt die Zuordnung auf, wenn ein Terrarium gelöscht wird.
+	 *
+	 * @param int $post_id Beitrags-ID des gelöschten Beitrags.
+	 */
+	public static function cleanup_on_delete( $post_id ) {
+		if ( self::POST_TYPE !== get_post_type( $post_id ) ) {
+			return;
+		}
+
+		foreach ( self::occupants( $post_id ) as $animal_id ) {
+			delete_post_meta( $animal_id, self::ANIMAL_META );
+		}
 	}
 
 	/**

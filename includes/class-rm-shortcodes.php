@@ -268,7 +268,10 @@ class RM_Shortcodes {
 
 			$animal->rm_months = $months;
 			$w                 = get_post_meta( $animal->ID, '_rm_weights', true );
-			$animal->rm_weight = ( is_array( $w ) && $w ) ? (int) end( $w )['grams'] : 0;
+			// Ältere Einträge können ohne 'grams' vorliegen (Importe, abgebrochene
+			// Speicherungen); ein direkter Zugriff löste dann eine Warnung aus.
+			$last              = ( is_array( $w ) && $w ) ? end( $w ) : null;
+			$animal->rm_weight = ( is_array( $last ) && isset( $last['grams'] ) ) ? (int) $last['grams'] : 0;
 			$filtered[]        = $animal;
 		}
 

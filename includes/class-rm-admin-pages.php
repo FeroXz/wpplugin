@@ -493,17 +493,20 @@ class RM_Admin_Pages {
 				<div class="notice notice-success is-dismissible">
 					<p>
 						<?php
+						// %d erwartet einen Integer – number_format_i18n() liefert
+						// eine formatierte Zeichenkette ("1.234"), die printf()
+						// bei %d auf "1" verkürzen würde.
 						printf(
 							/* translators: %d: Anzahl angelegter Fütterungen */
-							esc_html( _n( '%d Fütterung gespeichert.', '%d Fütterungen gespeichert.', max( 1, $count ), 'reptilien-manager' ) ),
-							esc_html( number_format_i18n( max( 1, $count ) ) )
+							esc_html( _n( '%d Fütterung gespeichert.', '%d Fütterungen gespeichert.', $count, 'reptilien-manager' ) ),
+							(int) $count
 						);
 						if ( $failed ) {
 							echo ' ';
 							printf(
 								/* translators: %d: Anzahl fehlgeschlagener Tage */
 								esc_html( _n( '%d Tag konnte nicht gespeichert werden.', '%d Tage konnten nicht gespeichert werden.', $failed, 'reptilien-manager' ) ),
-								esc_html( number_format_i18n( $failed ) )
+								(int) $failed
 							);
 						}
 						?>

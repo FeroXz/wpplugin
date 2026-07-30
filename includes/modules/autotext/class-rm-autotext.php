@@ -192,7 +192,9 @@ class RM_Autotext {
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
 			return;
 		}
-		if ( wp_is_post_revision( $post_id ) || 'auto-draft' === $post->post_status ) {
+		// Entwurfsrohlinge und das Verschieben in den Papierkorb (wp_trash_post()
+		// läuft ebenfalls über wp_update_post) sollen nichts neu erzeugen.
+		if ( wp_is_post_revision( $post_id ) || in_array( $post->post_status, array( 'auto-draft', 'trash' ), true ) ) {
 			return;
 		}
 
@@ -204,12 +206,11 @@ class RM_Autotext {
 			return;
 		}
 
-		$new_title   = self::build_title( $post_id );
-		$last_title  = (string) get_post_meta( $post_id, '_rm_autotitle_last', true );
+		$new_title     = self::build_title( $post_id );
+		$last_title    = (string) get_post_meta( $post_id, '_rm_autotitle_last', true );
 		$title_is_ours = ( '' === trim( $post->post_title ) ) || ( $post->post_title === $last_title );
 
-		$new_content  = RM_Templates::render( self::template_key(), RM_Templates::collect_stored( $post_id ) );
-		$last_hash    = (string) get_post_meta( $post_id, '_rm_autotext_hash', true );
+		$last_hash       = (string) get_post_meta( $post_id, '_rm_autotext_hash', true );
 		$content_is_ours = ( '' === trim( $post->post_content ) ) || ( md5( $post->post_content ) === $last_hash );
 
 		$changes = array();
@@ -217,8 +218,15 @@ class RM_Autotext {
 		if ( $new_title && $title_is_ours && $post->post_title !== $new_title ) {
 			$changes['post_title'] = $new_title;
 		}
-		if ( $content_is_ours && $post->post_content !== $new_content ) {
-			$changes['post_content'] = $new_content;
+
+		// Den Text erst erzeugen, wenn er überhaupt übernommen werden dürfte –
+		// collect_stored() fragt Verpaarungen, Nachzuchten und Begriffe ab und
+		// liefe sonst bei jedem Speichern umsonst.
+		if ( $content_is_ours ) {
+			$new_content = RM_Templates::render( self::template_key(), RM_Templates::collect_stored( $post_id ) );
+			if ( $post->post_content !== $new_content ) {
+				$changes['post_content'] = $new_content;
+			}
 		}
 
 		if ( ! $changes ) {
@@ -229,11 +237,21 @@ class RM_Autotext {
 		wp_update_post( array_merge( array( 'ID' => $post_id ), $changes ) );
 		$running = false;
 
+		// Bewusst gegen den *gespeicherten* Stand abgleichen: wp_update_post()
+		// jagt Titel und Inhalt durch Filter (kses, content_save_pre, …). Würde
+		// hier der erzeugte Rohwert gemerkt, stimmte der Vergleich beim nächsten
+		// Speichern nicht mehr überein – die Automatik hielte den Inhalt
+		// fälschlich für handgeändert und stellte die Pflege ein.
+		$saved = get_post( $post_id );
+		if ( ! $saved ) {
+			return;
+		}
+
 		if ( isset( $changes['post_title'] ) ) {
-			update_post_meta( $post_id, '_rm_autotitle_last', $changes['post_title'] );
+			update_post_meta( $post_id, '_rm_autotitle_last', $saved->post_title );
 		}
 		if ( isset( $changes['post_content'] ) ) {
-			update_post_meta( $post_id, '_rm_autotext_hash', md5( $changes['post_content'] ) );
+			update_post_meta( $post_id, '_rm_autotext_hash', md5( $saved->post_content ) );
 		}
 	}
 
@@ -244,15 +262,16 @@ class RM_Autotext {
 	 * @param WP_Post $post    Beitrag.
 	 */
 	private static function sync_call_name( $post_id, $post ) {
-		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce wird in RM_Animal_Meta::save() geprüft; hier wird nur ein bereits validiertes Formularfeld übernommen.
-		if ( isset( $_POST['rm_call_name'] ) && isset( $_POST['rm_animal_meta_nonce'] ) ) {
+		// Das Feld stammt aus der Stammdaten-Maske und wird nur übernommen,
+		// wenn deren Nonce hier eigenständig verifiziert werden konnte.
+		$nonce = isset( $_POST['rm_animal_meta_nonce'] ) ? sanitize_key( $_POST['rm_animal_meta_nonce'] ) : '';
+		if ( isset( $_POST['rm_call_name'] ) && $nonce && wp_verify_nonce( $nonce, 'rm_animal_meta' ) ) {
 			$name = sanitize_text_field( wp_unslash( $_POST['rm_call_name'] ) );
 			if ( '' !== $name ) {
 				update_post_meta( $post_id, '_rm_call_name', $name );
 				return;
 			}
 		}
-		// phpcs:enable
 
 		// Noch kein Rufname hinterlegt: aus dem aktuellen Titel übernehmen,
 		// aber nur, wenn dieser nicht selbst automatisch erzeugt wurde.

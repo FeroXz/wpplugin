@@ -4,7 +4,7 @@ Tags: reptilien, bartagame, zucht, genetik, futterplan
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.21.0
+Stable tag: 1.21.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -230,6 +230,16 @@ Vollständige artspezifische Profile (Genetik-Rechner und Futterplan) gibt es f�
 Pro Gen wird die Mendelsche Vererbung (Punnett-Quadrat) berechnet und über alle Gene kombiniert. „het“ bezeichnet Träger eines rezessiven Gens ohne sichtbare Ausprägung.
 
 == Changelog ==
+
+= 1.21.1 =
+* Behoben: Die automatische Textpflege merkte sich den *erzeugten* Rohtext, WordPress speichert Titel und Inhalt aber gefiltert (kses & Co.). Beim nächsten Speichern passte der Abgleich nicht mehr, die Automatik hielt den Text für handgeändert und stellte die Pflege stillschweigend ein. Es wird jetzt gegen den tatsächlich gespeicherten Stand abgeglichen.
+* Behoben: Das Verschieben eines Tieres in den Papierkorb löste die Automatik aus und erzeugte Titel und Text neu.
+* Behoben: Der Rufname aus der Stammdaten-Maske wurde übernommen, sobald das Nonce-Feld überhaupt vorhanden war – die Nonce wird jetzt eigenständig geprüft.
+* Behoben: Wurde ein Terrarium gelöscht oder in den Papierkorb gelegt, zeigten die zugeordneten Tiere weiter darauf. Sie fielen dadurch aus beiden Listen heraus: weder im Terrarium noch unter „Tiere ohne Terrarium“. Verwaiste Zuordnungen werden jetzt ignoriert und beim endgültigen Löschen automatisch abgeräumt.
+* Behoben: Die Meldung nach dem Sammel-Eintrag im Futterplan gab bei mehr als 999 Fütterungen eine falsche Zahl aus (Format-Platzhalter erwartete eine Ganzzahl, bekam aber eine formatierte Zeichenkette).
+* Behoben: Das Feld „Strompreis“ war auch für Halter sichtbar, die es gar nicht speichern dürfen. Sie sehen jetzt den geltenden Preis als Hinweis.
+* Behoben: Die Tierliste im Frontend konnte bei unvollständigen Gewichtseinträgen (etwa aus alten Importen) eine PHP-Warnung auslösen.
+* Optimiert: Der Beitragstext wird nur noch erzeugt, wenn die Automatik ihn auch übernehmen darf – das spart bei jedem Speichern eines von Hand geschriebenen Tiers die Abfragen nach Verpaarungen, Nachzuchten und Begriffen.
 
 = 1.21.0 =
 * Neu: Terrarien-Verwaltung als eigener Inhaltstyp – Maße mit automatisch berechnetem Volumen, Bauart, Standort und Notizen.

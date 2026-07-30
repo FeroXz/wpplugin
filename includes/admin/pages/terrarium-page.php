@@ -50,6 +50,16 @@ class RM_Terrarium_Page {
 		return get_posts( $args );
 	}
 
+	/**
+	 * Der Strompreis ist eine seitenweite Einstellung, keine eigene Angabe je
+	 * Halter – deshalb darf ihn nur ändern, wer auch fremde Tiere verwaltet.
+	 *
+	 * @return bool
+	 */
+	public static function can_edit_price() {
+		return current_user_can( 'manage_options' ) || current_user_can( 'edit_others_posts' );
+	}
+
 	public static function render_page() {
 		if ( ! current_user_can( 'edit_posts' ) ) {
 			wp_die( esc_html__( 'Keine Berechtigung.', 'reptilien-manager' ) );
@@ -69,6 +79,7 @@ class RM_Terrarium_Page {
 			<?php endif; ?>
 
 			<h2><?php esc_html_e( 'Strompreis', 'reptilien-manager' ); ?></h2>
+			<?php if ( self::can_edit_price() ) : ?>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="rm_save_power_price" />
 				<?php wp_nonce_field( 'rm_save_power_price', 'rm_power_price_nonce' ); ?>
@@ -83,6 +94,17 @@ class RM_Terrarium_Page {
 				</table>
 				<?php submit_button( __( 'Strompreis speichern', 'reptilien-manager' ), 'secondary', 'submit', false ); ?>
 			</form>
+			<?php else : ?>
+				<p class="description">
+					<?php
+					printf(
+						/* translators: %s: Preis je kWh, bereits formatiert. */
+						esc_html__( 'Es wird mit %s € je kWh gerechnet. Diese Einstellung kann nur die Verwaltung ändern.', 'reptilien-manager' ),
+						esc_html( number_format_i18n( $price, 2 ) )
+					);
+					?>
+				</p>
+			<?php endif; ?>
 
 			<h2><?php esc_html_e( 'Strom-Kalkulator', 'reptilien-manager' ); ?></h2>
 			<p class="description"><?php esc_html_e( 'Einzelnes Gerät durchrechnen, ohne es einem Terrarium zuzuordnen – z. B. um zwei Lampen zu vergleichen.', 'reptilien-manager' ); ?></p>
@@ -265,7 +287,7 @@ class RM_Terrarium_Page {
 		if ( ! isset( $_POST['rm_power_price_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_POST['rm_power_price_nonce'] ), 'rm_save_power_price' ) ) {
 			wp_die( esc_html__( 'Sicherheitsprüfung fehlgeschlagen.', 'reptilien-manager' ) );
 		}
-		if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'edit_others_posts' ) ) {
+		if ( ! self::can_edit_price() ) {
 			wp_die( esc_html__( 'Keine Berechtigung.', 'reptilien-manager' ) );
 		}
 
